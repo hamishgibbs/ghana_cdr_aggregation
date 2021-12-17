@@ -11,7 +11,11 @@ aggregate_network_all_times <- function(network){
   return(
     network %>% 
       group_by(pcod_from, pcod_to) %>% 
-      summarise(value = sum(value))
+      summarise(n_days = n(),
+                value_sum = sum(value),
+                value_mean = sum(value) / n_days,
+                .groups="drop") %>% 
+      select(-n_days)
   )
 }
 

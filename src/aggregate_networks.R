@@ -28,6 +28,8 @@ sequential <- read_csv("/Users/hamishgibbs/Filr/My Files/Projects/Ghana/movement
 
 intersecting_dates <- intersect(as.character(all_pairs$dt), as.character(sequential$dt))
 
+write_rds(length(intersecting_dates), "data/networks/n_intersecting_dates.rds")
+
 all_pairs_prepared <- all_pairs %>% 
   filter(dt %in% as.Date(intersecting_dates))
 

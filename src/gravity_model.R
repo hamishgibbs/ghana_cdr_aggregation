@@ -1,16 +1,7 @@
 require(mobility)
 
 population <- read_csv("data/population/population_admin2.csv")
-distance_matrix <- read_csv("data/distance/distance_matrix_admin2.csv") %>% 
-  mutate(from = as.character(from), to=as.character(to))
-
-matrix_diag <- data.frame(from=unique(population$pcod2), to=unique(population$pcod2),
-                          distance=0)
-
-distance_matrix <- rbind(matrix_diag, distance_matrix) %>% 
-  as_tibble() %>% arrange(from, to)
-
-reshape2::acast(distance_matrix, from~to, value.var = "distance")
+distance_matrix <- read_rds("data/distance/distance_matrix_admin2.rds")
 
 all_pairs <- read_csv("data/networks/all_pairs_admin2.csv")
 sequential <- read_csv("data/networks/sequential_admin2.csv")
@@ -20,14 +11,7 @@ model_inputs <- list()
 model_inputs$N <- population$population
 names(model_inputs$N) <- population$pcod2
 
-model_inputs$D <- reshape2::acast(distance_matrix, from~to, value.var = "distance")
-model_inputs$D[upper.tri(model_inputs$D)] = t(model_inputs$D)[upper.tri(model_inputs$D)]
-
-d <- as.data.frame(model_inputs$D)
-d$to <- rownames(d)
-
-d %>% pivot_longer(cols=!c(to), names_to="pcod_to", values_to = "distance") %>% 
-  filter(is.na(distance))
+model_inputs$D <- distance_matrix
 
 model_inputs$M <- reshape2::acast(all_pairs, pcod_from~pcod_to, value.var="value_mean")
 

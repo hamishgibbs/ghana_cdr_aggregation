@@ -8,14 +8,14 @@ get_edge_number <- function(network){
 }
 get_trip_number <- function(network){
   return(
-    network %>% pull(value) %>% sum()
+    network %>% pull(value_sum) %>% sum()
   )
 }
 network_to_graph <- function(network){
   network_data <- network %>% 
     rename(from = pcod_from,
            to = pcod_to,
-           weight = value)
+           weight = value_sum)
   return(graph_from_data_frame(network_data))
 }
 get_network_edge_density <- function(network){
@@ -24,7 +24,7 @@ get_network_edge_density <- function(network){
 }
 get_percentage_difference <- function(a, b){
   return(
-    ((a - b) / mean(a, b)) * 100
+    ((b - a) / a) * 100
   )
 }
 

@@ -1,3 +1,4 @@
+require(tidyverse)
 require(SimInf)
 # Inputs: 
 # S: vector of starting population sizes (-1 in infection location)
@@ -10,37 +11,35 @@ require(SimInf)
 # epsilon: incubation rate from exposed to infected
 # gamma: recovery rate from infected to recovered
 
-model <- SEIR(u0 = data.frame(S = rep(99, 10),
-                              E = rep(0, 10),
-                              I = rep(1, 10),
-                              R = rep(0, 10)),
-             tspan = 1:200,
-             beta = 0.16,
-             epsilon = 0.25,
-             gamma = 0.077)
+n_patches <- read_rds("data/modelling/n_patches.rds")
+n_dates <- read_rds("data/networks/n_intersecting_dates.rds")
+n_dates <- 500
+
+S <- read_rds("data/modelling/population.rds")
+E <- rep(0, n_patches)
+# For now - introduce one infected individual into each place
+I <- rep(1000, n_patches)
+R <- rep(0, n_patches)
+
+events <- read_rds("data/modelling/all_pairs_events.rds")
+
+# DEV: Should move comparison of methodologies to another file 
+# this file should be for SEIR functions
+# DEV: parameters should be modelled as distributions 
+
+model <- SEIR(u0 = data.frame(S = S,
+                              E = E,
+                              I = I,
+                              R = R),
+             tspan = 1:n_dates,
+             events=events,
+             beta = 0.147,
+             epsilon = 1/5.2,
+             gamma = 1/12.39)
 
 result <- run(model)
 
 plot(result)
 
-u0 <- data.frame(S = c(100, 0), I = c(100, 0), R = c(100, 0))
+write_rds(trajectory(result), "output/modelling/preliminary/all_pairs_trajectory.rds")
 
-events <- data.frame(event = rep("extTrans", 300),
-                     time = 1:300,
-                     node = 1,
-                     dest = 2,
-                     n = 0,
-                     proportion = 0.01,
-                     select = 4,
-                     shift = 0)
-
-model <- SIR(u0=u0,
-             tspan = 1:300,
-             events = events,
-             beta = 0,
-             gamma = 0)
-
-plot(run(model), index = 1:2, range = FALSE)
-model@events@E[2, 4] <- 2
-plot(run(model), index = 1:2, range = FALSE)
-model@events@E[2, 4] <- 10

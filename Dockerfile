@@ -1,4 +1,4 @@
-FROM rocker/geospatial:4
+FROM rocker/geospatial:latest
 
 RUN R -e 'devtools::install_github("hamishgibbs/ggutils")'
 RUN R -e 'devtools::install_github("ropensci/rnaturalearthhires")'

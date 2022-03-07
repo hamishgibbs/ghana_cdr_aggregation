@@ -11,35 +11,64 @@ require(SimInf)
 # epsilon: incubation rate from exposed to infected
 # gamma: recovery rate from infected to recovered
 
-n_patches <- read_rds("data/modelling/n_patches.rds")
-n_dates <- read_rds("data/networks/n_intersecting_dates.rds")
-n_dates <- 500
+run_seir_model <- function(mobility_type, 
+                           infected_location, 
+                           population,
+                           events){
+  
+  S <- population
+  E <- rep(0, length(population))
+  
+  I <- rep(0, length(population))
+  # Assign n individuals to one introduction location
+  I[infected_location] <- 1000
+  
+  R <- rep(0, length(population))
+  
+  events <- events
+  
+  events_test <- events %>% 
+    mutate(select = 2)
+  
+  model <- SEIR(u0 = data.frame(S = S,
+                                E = E,
+                                I = I,
+                                R = R),
+                tspan = 1:max(events$time),
+                events=events_test,
+                beta = 0.147,
+                epsilon = 1/5.2,
+                gamma = 1/12.39)
+  
+  return(run(model))
+  
+}
 
-S <- read_rds("data/modelling/population.rds")
-E <- rep(0, n_patches)
-# For now - introduce one infected individual into each place
-I <- rep(1000, n_patches)
-R <- rep(0, n_patches)
 
-events <- read_rds("data/modelling/all_pairs_events.rds")
+mobility_type <- "sequential" # sequential all_pairs
 
-# DEV: Should move comparison of methodologies to another file 
-# this file should be for SEIR functions
-# DEV: parameters should be modelled as distributions 
+population <- read_rds("data/modelling/population.rds")
+pcods <- read_rds("data/modelling/recoded_pcod.rds")
+events <- read_rds(paste0("data/modelling/", mobility_type, "_events.rds"))
 
-model <- SEIR(u0 = data.frame(S = S,
-                              E = E,
-                              I = I,
-                              R = R),
-             tspan = 1:n_dates,
-             events=events,
-             beta = 0.147,
-             epsilon = 1/5.2,
-             gamma = 1/12.39)
+# Reduce the number of introduction locations (every 6th)
+pop_ranked_pcod <- tibble(pcod=names(pcods), pcod_i=pcods, population) %>% 
+  arrange(-population) %>% pull(pcod_i)
+pcod_i <- pop_ranked_pcod[seq(1, length(pop_ranked_pcod), 6)]
 
-result <- run(model)
+for(mobility_type in c("all_pairs", "sequential")){
+  for (i in pcod_i){
+    print(which(pcod_i==i))
+    result <- run_seir_model(mobility_type=mobility_type,
+                             infected_location=i,
+                             population=population,
+                             events=events)
+    
+    write_rds(trajectory(result), paste0("output/modelling/preliminary/", 
+                                         mobility_type, "/infected_", i, 
+                                         "_trajectory.rds"))
+    
+  } 
+}
 
-plot(result)
-
-write_rds(trajectory(result), "output/modelling/preliminary/all_pairs_trajectory.rds")
 

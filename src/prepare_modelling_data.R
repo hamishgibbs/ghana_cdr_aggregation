@@ -1,13 +1,13 @@
 require(tidyverse)
 
 pop <- read_csv("data/population/population_admin2.csv") %>% 
-  mutate(population = as.integer(population)) #%>% 
-  #slice(1:100)
+  mutate(population = as.integer(population))
 
 all_pairs <- read_csv("data/networks/all_pairs_admin2.csv")
 sequential <- read_csv("data/networks/sequential_admin2.csv")
 
 n_dates <- read_rds("data/networks/n_intersecting_dates.rds")
+n_dates <- 1000
 
 # recode locations as integers
 pcod2_names <- pop$pcod2 %>% unique()
@@ -27,7 +27,7 @@ sequential <- sequential %>%
   drop_na(pcod_from, pcod_to)
 
 # recode population
-pop$pcod2 <- recode(pop$pcod2, !!!recode)
+pop$pcod2 <- recode(pop$pcod2, !!!recoded_pcod2)
 
 create_daily_movement <- function(network, n_dates){
   res <- list()
@@ -44,21 +44,14 @@ create_daily_movement <- function(network, n_dates){
       select(-name) %>% 
       rename(n=value_mean,
              node=pcod_from,
-             dest=pcod_to)
+             dest=pcod_to) %>% 
+      mutate(node = as.numeric(node),
+             dest = as.numeric(dest),
+             n = as.integer(n))
     
-    #day_net <- network %>% 
-    #  select(-value_sum) %>% 
-    #  left_join(pop, by = c("pcod_from" = "pcod2")) %>% 
-    #  mutate(proportion = value_mean / population) %>% 
-    #  rename(node=pcod_from,
-    #         dest=pcod_to)
     day_net$time = i
     day_net$event = "extTrans"
-    day_net$n = 0
-    # DEV: Use the fourth column in the select matrix where all compartments can 
-    # be sampled with equal weight.
-    # DEV: we could add compartment-specific propensity to travel 
-    # DEV: check this
+    day_net$proportion = 0
     day_net$select = 1
     day_net$shift = 0
     
@@ -71,9 +64,7 @@ create_daily_movement <- function(network, n_dates){
 all_pairs_events <- create_daily_movement(all_pairs, n_dates)
 sequential_events <- create_daily_movement(sequential, n_dates)
 
-# Check that new n is in line with value_sum
-
 write_rds(all_pairs_events, "data/modelling/all_pairs_events.rds")
 write_rds(sequential_events, "data/modelling/sequential_events.rds")
 write_rds(pop$population, "data/modelling/population.rds")
-write_rds(length(recode), "data/modelling/n_patches.rds")
+write_rds(recoded_pcod2, "data/modelling/recoded_pcod.rds")

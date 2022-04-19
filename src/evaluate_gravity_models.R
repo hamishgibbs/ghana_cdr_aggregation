@@ -1,45 +1,47 @@
+require(tidyverse)
+
+all_pairs_model <- read_rds("output/gravity_modelling/all_pairs_model.rds")
+sequential_model <- read_rds("output/gravity_modelling/sequential_model.rds")
+
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
 rownames(summary(all_pairs_model))
 
-get_model_summary <- function(model){
+reshape_model_summary <- function(summary){
   return (
-    summary(model) %>% 
-      as_tibble() %>% round(., 2) %>% 
-      mutate(rowname = rownames(summary(model)))
+    summary %>% 
+      as_tibble() %>%
+      mutate(rowname = rownames(summary))
   )
 }
 
-display_model_summary <- function(model){
+display_model_summary <- function(summary, tolerance=3){
   return (
-    get_model_summary(model) %>% 
-      mutate(display = paste0(mean, " (", Q2.5, ",", Q97.5, ")")) %>% 
+    reshape_model_summary(summary) %>% 
+      mutate(across(where(is.numeric), round, tolerance)) %>% 
+      mutate(display = paste0(mean, " (", Q2.5, ", ", Q97.5, ")")) %>% 
       select(rowname, display)
   )  
 }
 
-display_model_summary(all_pairs_model)
-display_model_summary(sequential_model)
-
-get_key_difference_metrics <- function(model, postfix) {
-  return (
-    get_model_summary(model) %>% 
-      select(rowname, mean, Q2.5, Q97.5) %>% 
-      filter(rowname %in% c("gamma", "omega_1", "omega_2", "theta")) %>% 
-      setNames(paste0(names(.), postfix))
-  )
+get_model_summary_difference <- function(summary_1, summary_2, tolerance=3){
+  summary_1 <- reshape_model_summary(summary_1)
+  summary_2 <- reshape_model_summary(summary_2)
+  combined_summaries <- summary_1 %>% left_join(summary_2, by = c("rowname"))
+  combined_summaries_display <- combined_summaries %>% 
+    mutate(mean_diff = mean.x - mean.y,
+           Q2.5_diff = Q2.5.x - Q2.5.y,
+           Q97.5_diff = Q97.5.x - Q97.5.y) %>% 
+    mutate(across(where(is.numeric), round, tolerance)) %>% 
+    mutate(display = paste0(mean_diff, " (", Q2.5_diff, ", ", Q97.5_diff, ")")) %>% 
+    select(rowname, display)
+  return(combined_summaries_display)
 }
-get_key_difference_metrics(all_pairs_model, "_all_pairs") %>% 
-  left_join(get_key_difference_metrics(sequential_model, "_sequential"), 
-            by = c("rowname_all_pairs" = "rowname_sequential")) %>% 
-  mutate(mean = mean_all_pairs - mean_sequential,
-         Q2.5 = Q2.5_all_pairs - Q2.5_sequential,
-         Q97.5 = Q97.5_all_pairs - Q97.5_sequential) %>%
-  mutate_at(c("mean", "Q2.5", "Q97.5"), round, 2) %>% 
-  rename(rowname = rowname_all_pairs) %>% 
-  mutate(display = paste0(mean, " (", Q2.5, ",", Q97.5, ")")) %>% 
-  select(rowname, display)
 
+display_model_summary(all_pairs_model$summary)
+display_model_summary(sequential_model$summary)
+
+get_model_summary_difference(all_pairs_model$summary, sequential_model$summary)
 
 
 #all_pairs_summary %>% mutate(metric) %>% pivot_wider(names_from = metric)

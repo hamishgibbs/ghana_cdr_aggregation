@@ -1,15 +1,15 @@
-all_pairs <- read_csv("data/networks/all_pairs_admin2.csv")
-sequential <- read_csv("data/networks/sequential_admin2.csv")
-
-distinct_jouneys <- rbind(all_pairs, sequential) %>% 
-  select(pcod_from, pcod_to) %>% 
-  distinct() %>% 
-  mutate(journey = row_number())
+require(tidyverse)
+require(sf)
 
 a2 <- st_read("data/geo/admin2.geojson") %>% 
   mutate(geometry = st_make_valid(geometry)) %>% 
   select(-centroid) %>% 
   st_centroid()
+
+distinct_jouneys <- expand.grid(pcod_from=a2$pcod, pcod_to=a2$pcod) %>% 
+  as_tibble() %>% mutate_all(as.character) %>% 
+  filter(pcod_from != pcod_to) %>% 
+  mutate(journey = row_number())
 
 network_lines <- distinct_jouneys %>% 
   pivot_longer(!c(journey), values_to = "pcod") %>% 

@@ -1,4 +1,5 @@
 require(tidyverse)
+require(sf)
 
 all_pairs_model <- read_rds("output/gravity_modelling/all_pairs_model.rds")
 sequential_model <- read_rds("output/gravity_modelling/sequential_model.rds")
@@ -6,6 +7,9 @@ sequential_model <- read_rds("output/gravity_modelling/sequential_model.rds")
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
 rownames(summary(all_pairs_model))
+
+######
+# Compare gravity model parameter estimates
 
 reshape_model_summary <- function(summary){
   return (
@@ -43,21 +47,8 @@ display_model_summary(sequential_model$summary)
 
 get_model_summary_difference(all_pairs_model$summary, sequential_model$summary)
 
-
-#all_pairs_summary %>% mutate(metric) %>% pivot_wider(names_from = metric)
-
-#combined_summary <- cbind(all_pairs_summary, sequential_summary) %>% 
-# round(., 3) %>% as_tibble() %>% 
-#mutate(metric)
-
-#combined_summary[ , order(names(combined_summary))] %>% view
-
-#summary(mod, probs=c(0.025, 0.975), ac_lags=10)
-#check(mod)
-
-#M <- predict(mod)
-
-#M
+######
+# Plot gravity model comparison
 
 a2 <- st_read("data/geo/admin2.geojson") %>% 
   mutate(geometry = st_make_valid(geometry)) %>% 
@@ -134,6 +125,12 @@ plot_raster_network <- function(network, fill_scale, name_levels,
   return(p)
   
 }
+
+plot_network_distance_kernel <- function(network, journey_lines, title){
+  
+}
+
+plot_network_distance_kernel(all_pairs_prediction, journey_lines)
 
 
 p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean), fill_scale=fill_scale, 

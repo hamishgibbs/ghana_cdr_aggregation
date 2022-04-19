@@ -1,4 +1,3 @@
-require(sf)
 require(tidyverse)
 require(mobility)
 
@@ -30,8 +29,9 @@ create_model_inputs <- function(population, distance, network){
   
 }
 
-train_gravity_model <- function(inputs){
-
+train_gravity_model <- function(inputs, seed=NULL){
+  
+  if (seed){set.seed(seed)}
   return(
     mobility(data=inputs,
              model='gravity',
@@ -47,8 +47,8 @@ train_gravity_model <- function(inputs){
 all_pairs_model_inputs <- create_model_inputs(population, distance_matrix, all_pairs)
 sequential_model_inputs <- create_model_inputs(population, distance_matrix, sequential)
 
-all_pairs_model <- train_gravity_model(all_pairs_model_inputs)
-sequential_model <- train_gravity_model(sequential_model_inputs)
+all_pairs_model <- train_gravity_model(all_pairs_model_inputs, seed=1000)
+sequential_model <- train_gravity_model(sequential_model_inputs, seed=1000)
 
 write_rds(all_pairs_model, "output/gravity_modelling/all_pairs_model.rds")
 write_rds(sequential_model, "output/gravity_modelling/sequential_model.rds")

@@ -11,10 +11,18 @@ require(SimInf)
 # epsilon: incubation rate from exposed to infected
 # gamma: recovery rate from infected to recovered
 
+calculate_beta_from_R_given_gamma <- function(R0){
+  gamma <- 1/12.39
+  return (R0 * gamma)
+}
+
+calculate_beta_from_R_given_gamma(3)
+
 run_seir_model <- function(mobility_type, 
                            infected_location, 
                            population,
-                           events){
+                           events,
+                           R0){
   
   S <- population
   E <- rep(0, length(population))
@@ -36,11 +44,11 @@ run_seir_model <- function(mobility_type,
                                 R = R),
                 tspan = 1:max(events$time),
                 events=events_test,
-                beta = 0.147,
+                beta = calculate_beta_from_R_given_gamma(R0), # 0.147,
                 epsilon = 1/5.2,
                 gamma = 1/12.39)
   
-  return(run(model))
+  return(model)
   
 }
 
@@ -51,24 +59,27 @@ population <- read_rds("data/modelling/population.rds")
 pcods <- read_rds("data/modelling/recoded_pcod.rds")
 events <- read_rds(paste0("data/modelling/", mobility_type, "_events.rds"))
 
-# Reduce the number of introduction locations (every 6th)
-pop_ranked_pcod <- tibble(pcod=names(pcods), pcod_i=pcods, population) %>% 
-  arrange(-population) %>% pull(pcod_i)
-pcod_i <- pop_ranked_pcod[seq(1, length(pop_ranked_pcod), 6)]
+introduction_pcods <- c("fid029", "fid240", "fid207")
 
-for(mobility_type in c("all_pairs", "sequential")){
-  for (i in pcod_i){
-    print(which(pcod_i==i))
-    result <- run_seir_model(mobility_type=mobility_type,
-                             infected_location=i,
-                             population=population,
-                             events=events)
-    
-    write_rds(trajectory(result), paste0("output/modelling/preliminary/", 
-                                         mobility_type, "/infected_", i, 
-                                         "_trajectory.rds"))
-    
-  } 
+introduction_pcods <- pcods[which(names(pcods) %in% introduction_pcods)]
+
+write_rds(introduction_pcods, "output/modelling/introduction_pcods.rds")
+
+for (R0 in c(1.1, 1.5, 3.0)){
+  for(mobility_type in c("all_pairs", "sequential")){
+    for (i in introduction_pcods){
+      print(paste0("Introduction: ", i, " Mobility: ", mobility_type, " R0: ", R0))
+      model <- run_seir_model(mobility_type=mobility_type,
+                               infected_location=i,
+                               population=population,
+                               events=events,
+                               R0=R0)
+      result <- run(model)
+      write_rds(trajectory(result), paste0("output/modelling/preliminary/", 
+                                           mobility_type, "/infected_", i,
+                                           "_R0_", R0, "_trajectory.rds"))
+      
+    } 
+  }
 }
-
 

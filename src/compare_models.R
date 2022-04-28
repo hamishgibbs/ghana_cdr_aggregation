@@ -1,5 +1,3 @@
-
-
 total_infected_per_time <- function(result){
   return(
     result %>% 

@@ -52,3 +52,5 @@ sequential_model <- train_gravity_model(sequential_model_inputs, seed=1000)
 
 write_rds(all_pairs_model, "output/gravity_modelling/all_pairs_model.rds")
 write_rds(sequential_model, "output/gravity_modelling/sequential_model.rds")
+write_rds(predict(all_pairs_model), "output/gravity_modelling/all_pairs_model_predictions.rds")
+write_rds(predict(sequential_model), "output/gravity_modelling/sequential_model_predictions.rds")

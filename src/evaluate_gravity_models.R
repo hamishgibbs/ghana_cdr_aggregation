@@ -1,8 +1,17 @@
 require(tidyverse)
 require(sf)
 
+population <- read_csv("data/population/population_admin2.csv")
+distance_matrix <- read_rds("data/distance/distance_matrix_admin2.rds")
+
+all_pairs <- read_csv("data/networks/all_pairs_admin2.csv") 
+sequential <- read_csv("data/networks/sequential_admin2.csv")
+
 all_pairs_model <- read_rds("output/gravity_modelling/all_pairs_model.rds")
 sequential_model <- read_rds("output/gravity_modelling/sequential_model.rds")
+
+all_pairs_prediction <- read_rds("output/gravity_modelling/all_pairs_model_predictions.rds")
+sequential_prediction <- read_rds("output/gravity_modelling/sequential_model_predictions.rds")
 
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
@@ -74,8 +83,8 @@ matrix_to_long_df_to_plot <- function(m){
   
 }
 
-all_pairs_prediction <- matrix_to_long_df_to_plot(predict(all_pairs_model))
-sequential_prediction <- matrix_to_long_df_to_plot(predict(sequential_model))
+all_pairs_prediction <- matrix_to_long_df_to_plot(all_pairs_prediction)
+sequential_prediction <- matrix_to_long_df_to_plot(sequential_prediction)
 
 # Total number of daily trips in each network 
 all_pairs %>% 
@@ -120,26 +129,48 @@ plot_raster_network <- function(network, fill_scale, name_levels,
     theme(legend.position = "none",
           axis.text = element_blank(),
           axis.ticks = element_blank()) + 
-    labs(x = NULL, y = NULL, title=title)
+    labs(x = NULL, y = NULL, title=title) + 
+    theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
   
   return(p)
   
 }
 
-plot_network_distance_kernel <- function(network, journey_lines, title){
+plot_network_distance_kernel <- function(network, distance_matrix, title=NULL){
   
+  journey_distances <- distance_matrix[cbind(network$pcod_from, network$pcod_to)]
+  network$distance <- journey_distances
+  return (
+    network %>% 
+      ggplot() + 
+      geom_jitter(aes(x = distance, y = value), size=0.01) + 
+      scale_y_continuous(trans="log10", labels = scales::comma) + 
+      scale_x_continuous(trans="log10") + 
+      theme_classic() + 
+      labs(x="Distance (km)", y = "Travellers", title=title) 
+  )
 }
 
-plot_network_distance_kernel(all_pairs_prediction, journey_lines)
-
+p_all_pairs_kernel <- plot_network_distance_kernel(all_pairs %>% rename(value=value_mean), 
+                                                   distance_matrix,
+                                                   title="All Pairs (Empirical)")
+p_sequential_kernel <- plot_network_distance_kernel(sequential %>% rename(value=value_mean), 
+                                                    distance_matrix,
+                                                    title="Sequential (Empirical)")
+p_all_pairs_prediction_kernel <- plot_network_distance_kernel(all_pairs_prediction, 
+                                                              distance_matrix,
+                                                              title="All Pairs (Modelled)")
+p_sequential_prediction_kernel <- plot_network_distance_kernel(sequential_prediction, 
+                                                              distance_matrix,
+                                                              title="Sequential (Modelled)")
 
 p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean), fill_scale=fill_scale, 
                                    name_levels=name_levels,
-                                   title="All Pairs (Observed)")
+                                   title="All Pairs (Empirical)")
 
 p_sequential <- plot_raster_network(sequential %>% rename(value=value_mean), fill_scale=fill_scale, 
                                     name_levels=name_levels,
-                                    title="Sequential (Observed)")
+                                    title="Sequential (Empirical)")
 
 p_all_pairs_prediction <- plot_raster_network(all_pairs_prediction, fill_scale=fill_scale, 
                                               name_levels=name_levels,
@@ -147,12 +178,81 @@ p_all_pairs_prediction <- plot_raster_network(all_pairs_prediction, fill_scale=f
 p_sequential_prediction <- plot_raster_network(sequential_prediction, fill_scale=fill_scale,
                                                name_levels=name_levels,
                                                title="Sequential (Modelled)")
+plot_raster_network_difference <- function(network, fill_scale, 
+                                           name_levels, title){
+  return (plot_raster_network(network=network, 
+                        fill_scale=fill_scale,
+                        name_levels=name_levels,
+                        title=title) + 
+            theme(legend.position = "none") +
+            labs(fill=NULL)
+  )
+}
 
-p <- cowplot::plot_grid(p_all_pairs, p_sequential, 
-                        p_all_pairs_prediction, p_sequential_prediction)
+empirical_difference <- all_pairs %>% 
+  left_join(sequential, by=c("pcod_from", "pcod_to")) %>% 
+  mutate(perc_difference = ((value_mean.x - value_mean.y) / value_mean.x)*100) %>% 
+  drop_na(perc_difference)
 
+prediction_difference <- all_pairs_prediction %>% 
+  left_join(sequential_prediction, by=c("pcod_from", "pcod_to")) %>% 
+  mutate(perc_difference = ((value.x - value.y) / value.x)*100)
+
+combined_difference_values <- c(empirical_difference$perc_difference, prediction_difference$perc_difference)
+difference_breaks <- c(min(combined_difference_values)-1e-7, -25, -15, -10, -5, 0, 5, 10, 15, 25, max(combined_difference_values)+1e-7)
+
+empirical_difference <- ggutils::classify_intervals(empirical_difference, "perc_difference", difference_breaks)
+prediction_difference <- ggutils::classify_intervals(prediction_difference, "perc_difference", difference_breaks)
+
+difference_scale_names <- levels(empirical_difference$value)
+difference_scale_values <- c('#67001f','#b2182b','#d6604d','#f4a582','#fddbc7','#d1e5f0','#92c5de','#4393c3','#2166ac','#053061')
+names(difference_scale_values) <- difference_scale_names
+
+p_dist <- ggplot() + 
+  geom_density(data=empirical_difference, aes(x=perc_difference)) + 
+  geom_density(data=prediction_difference, aes(x=perc_difference), color="red")
+plotly::ggplotly(p_dist)
+
+p_raster_difference_empirical <- plot_raster_network_difference(empirical_difference, 
+                               scale_fill_manual(values = difference_scale_values),
+                               name_levels,
+                               "Difference (Empirical)")
+
+p_raster_difference_prediction <- plot_raster_network_difference(prediction_difference, 
+                               scale_fill_manual(values = difference_scale_values),
+                               name_levels,
+                               "Difference (Modelled)")
+
+plot_network_distance_kernel_difference <- function(network, distance_matrix, title){
+  return(
+    plot_network_distance_kernel(network=network, distance_matrix=distance_matrix, 
+                                 title=title) + 
+      scale_y_continuous() + labs(y = "Difference (%)") + 
+      geom_hline(yintercept = 0, color="red", linetype="dashed", size=0.2)
+  )
+}
+
+p_kernel_difference_empirical <- plot_network_distance_kernel_difference(empirical_difference %>% select(-value) %>% rename(value=perc_difference), 
+                                                               distance_matrix,
+                                                               title="Difference (Empirical)")
+
+p_kernel_difference_prediction <- plot_network_distance_kernel_difference(prediction_difference %>% select(-value) %>% rename(value=perc_difference), 
+                                                               distance_matrix,
+                                                               title="Difference (Modelled)")
+
+p <- cowplot::plot_grid(p_all_pairs, p_all_pairs_prediction, 
+                        p_all_pairs_kernel, p_all_pairs_prediction_kernel,
+                        p_sequential, p_sequential_prediction,
+                        p_sequential_kernel, p_sequential_prediction_kernel,
+                        p_raster_difference_empirical, p_raster_difference_prediction,
+                        p_kernel_difference_empirical, p_kernel_difference_prediction,
+                        nrow=3)
+
+legend <- cowplot::get_legend(p_raster_difference_empirical + theme(legend.position = "bottom"))
+legend_left <- cowplot::plot_grid(legend, ggplot(), nrow=1)
+p_with_legend <- cowplot::plot_grid(p, legend_left, nrow=2, rel_heights = c(0.92, 0.08))
 
 ggsave("output/figures/movement_raster_comparison.png",
-       p,
-       width=9, height=9, units="in")
+       p_with_legend,
+       width=12, height=9, units="in")
 

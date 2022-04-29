@@ -249,7 +249,7 @@ p <- cowplot::plot_grid(p_all_pairs, p_all_pairs_prediction,
                         nrow=3)
 
 legend <- cowplot::get_legend(p_raster_difference_empirical + theme(legend.position = "bottom"))
-legend_left <- cowplot::plot_grid(legend, ggplot(), nrow=1)
+legend_left <- cowplot::plot_grid(legend, ggplot() + theme(panel.background = element_rect(fill="white")), nrow=1)
 p_with_legend <- cowplot::plot_grid(p, legend_left, nrow=2, rel_heights = c(0.92, 0.08))
 
 ggsave("output/figures/movement_raster_comparison.png",

@@ -27,9 +27,9 @@ read_introduction_data <- function(introduction_location){
   return(do.call(rbind, introduction_sensitivity))
 }
 
-introduction_sensitivity <- introduction_sensitivity %>% 
-  mutate(mobility_type = factor(mobility_type, levels=c("all_pairs", "sequential"),
-                                labels = c("All Pairs", "Sequential")))
+#introduction_sensitivity <- introduction_sensitivity %>% 
+#  mutate(mobility_type = factor(mobility_type, levels=c("all_pairs", "sequential"),
+#                                labels = c("All Pairs", "Sequential")))
 
 plot_arrival_timing_difference <- function(introduction_sensitivity, axis_text_size){
   

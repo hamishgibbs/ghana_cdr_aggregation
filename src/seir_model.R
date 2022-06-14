@@ -53,13 +53,11 @@ run_seir_model <- function(mobility_type,
   
 }
 
-
-mobility_type <- "sequential" # sequential all_pairs
+n_model_runs <- 10
 
 population <- read_rds("data/modelling/population.rds")
 pcods <- read_rds("data/modelling/recoded_pcod.rds")
 names(population) <- names(pcods)
-events <- read_rds(paste0("data/modelling/", mobility_type, "_events.rds"))
 
 introduction_pcods <- c("fid146", "fid164", "fid029", "fid240", "fid207")
 
@@ -69,18 +67,33 @@ write_rds(introduction_pcods, "output/modelling/introduction_pcods.rds")
 
 for (R0 in c(1.1, 1.5, 3.0)){
   for(mobility_type in c("all_pairs", "sequential")){
+    events <- read_rds(paste0("data/modelling/", mobility_type, "_events.rds"))
     for (i in introduction_pcods){
-      print(paste0("Introduction: ", i, " Mobility: ", mobility_type, " R0: ", R0))
-      model <- run_seir_model(mobility_type=mobility_type,
-                               infected_location=i,
-                               population=population,
-                               events=events,
-                               R0=R0)
-      result <- run(model)
-      write_rds(trajectory(result), paste0("output/modelling/preliminary/", 
-                                           mobility_type, "/infected_", i,
-                                           "_R0_", R0, "_trajectory.rds"))
-      
+        model <- run_seir_model(mobility_type=mobility_type,
+                                 infected_location=i,
+                                 population=population,
+                                 events=events,
+                                 R0=R0)
+        for (ii in 1:n_model_runs){
+          t1 <- Sys.time()
+          result <- run(model)
+          result_data <- trajectory(result)
+          result_data$mobility_type <- mobility_type
+          result_data$introduction_location <- names(introduction_pcods[which(introduction_pcods == i)])
+          result_data$R0 <- R0
+          result_data$sample <- ii
+          
+          write_rds(result_data, paste0("output/modelling/preliminary/", 
+                                        mobility_type, "/infected_", i,
+                                        "_R0_", R0, "_sample_", 
+                                        ii, "_trajectory.rds"))
+          t2 <- Sys.time()
+          print(paste0("Introduction: ", i, 
+                       " Mobility: ", mobility_type, 
+                       " R0: ", R0, 
+                       " sample: ", ii,
+                       " in ", round(t2-t1, 2), " seconds"))
+      }
     } 
   }
 }

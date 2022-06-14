@@ -56,7 +56,6 @@ p_curve_comparison <- rbind(
                     labels=c("All Pairs", "Sequential")) + 
   geom_ridgeline(alpha=0.5, size=0.7, scale = 1.3, fill="transparent") + 
   facet_wrap(~R0, scales="free_x") + 
-  #scale_x_continuous(limits = c(0, 750)) + 
   labs(y = "District", x = "Time", color="Mobility\nNetwork") +
   theme(panel.background = element_rect(fill="white"),
         panel.grid.major = element_line(color="black", size=0.05),

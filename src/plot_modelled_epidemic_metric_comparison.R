@@ -1,10 +1,25 @@
+require(tidyverse)
 require(sf)
 
-pcods <- read_rds("data/modelling/recoded_pcod.rds")
-population <- read_rds("data/modelling/population.rds")
+if (interactive()){
+  .args <- c(
+    "data/modelling/recoded_pcod.rds",
+    "data/modelling/population.rds",
+    "data/geo/admin2.geojson",
+    "data/geo/pcods_admin2.csv",
+    "output/modelling/preliminary/peak_infections.csv",
+    "output/modelling/preliminary/arrival_times.csv"
+  )
+} else {
+  .args <- commandArgs(trailingOnly = T)
+}
 
-a2 <- st_read("data/geo/admin2.geojson")
-pcods_a2 <- read.csv("data/geo/pcods_admin2.csv", header = F, col.names = c("pcod", "name2"))
+pcods <- read_rds(.args[1])
+population <- read_rds(.args[2])
+
+a2 <- st_read(.args[3])
+pcods_a2 <- read.csv(.args[4], header = F, col.names = c("pcod", "name2"))
+
 a2 <- a2 %>% left_join(pcods_a2, by =c("pcod"))
 a2 <- a2 %>% mutate(geometry = st_make_valid(geometry)) %>% 
   st_simplify(dTolerance = 100)
@@ -24,12 +39,12 @@ assign_factor_levels <- function(data,
            name2 = factor(name2, levels = name2_levels)))
 }
 
-peak_infections <- read_csv("output/modelling/preliminary/peak_infections.csv") %>% 
+peak_infections <- read_csv(.args[5]) %>% 
   assign_factor_levels(pcods_a2,
                        mobility_type_levels,
                        mobility_type_labels,
                        name2_levels)
-arrival_times <- read_csv("output/modelling/preliminary/arrival_times.csv") %>% 
+arrival_times <- read_csv(.args[6]) %>% 
   assign_factor_levels(pcods_a2,
                        mobility_type_levels,
                        mobility_type_labels,

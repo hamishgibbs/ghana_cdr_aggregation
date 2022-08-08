@@ -65,7 +65,7 @@ introduction_pcods <- pcods[which(names(pcods) %in% introduction_pcods)]
 
 write_rds(introduction_pcods, "output/modelling/introduction_pcods.rds")
 
-for (R0 in c(1.1, 1.5, 3.0)){
+for (R0 in c(1.25, 1.5, 3.0)){
   for(mobility_type in c("all_pairs", "sequential")){
     events <- read_rds(paste0("data/modelling/", mobility_type, "_events.rds"))
     for (i in introduction_pcods){

@@ -1,17 +1,34 @@
-require(tidyverse)
-require(sf)
+suppressPackageStartupMessages({
+  require(tidyverse)
+  require(sf)
+  require(cowplot)
+})
 
-population <- read_csv("data/population/population_admin2.csv")
-distance_matrix <- read_rds("data/distance/distance_matrix_admin2.rds")
+if(interactive()){
+  .args <-  c("data/population/population_admin2.csv",
+              "data/distance/distance_matrix_admin2.rds",
+              "data/networks/all_pairs_admin2.csv",
+              "data/networks/sequential_admin2.csv",
+              "output/gravity_modelling/all_pairs_model.rds",
+              "output/gravity_modelling/sequential_model.rds",
+              "output/gravity_modelling/all_pairs_model_predictions.rds",
+              "output/gravity_modelling/sequential_model_predictions.rds",
+              "output/figures/movement_raster_comparison.png")
+} else {
+  .args <- commandArgs(trailingOnly = T)
+}
 
-all_pairs <- read_csv("data/networks/all_pairs_admin2.csv") 
-sequential <- read_csv("data/networks/sequential_admin2.csv")
+population <- read_csv(.args[1])
+distance_matrix <- read_rds(.args[2])
 
-all_pairs_model <- read_rds("output/gravity_modelling/all_pairs_model.rds")
-sequential_model <- read_rds("output/gravity_modelling/sequential_model.rds")
+all_pairs <- read_csv(.args[3]) 
+sequential <- read_csv(.args[4])
 
-all_pairs_prediction <- read_rds("output/gravity_modelling/all_pairs_model_predictions.rds")
-sequential_prediction <- read_rds("output/gravity_modelling/sequential_model_predictions.rds")
+all_pairs_model <- read_rds(.args[5])
+sequential_model <- read_rds(.args[6])
+
+all_pairs_prediction <- read_rds(.args[7])
+sequential_prediction <- read_rds(.args[8])
 
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
@@ -211,6 +228,7 @@ names(difference_scale_values) <- difference_scale_names
 p_dist <- ggplot() + 
   geom_density(data=empirical_difference, aes(x=perc_difference)) + 
   geom_density(data=prediction_difference, aes(x=perc_difference), color="red")
+
 plotly::ggplotly(p_dist)
 
 p_raster_difference_empirical <- plot_raster_network_difference(empirical_difference, 
@@ -240,19 +258,25 @@ p_kernel_difference_prediction <- plot_network_distance_kernel_difference(predic
                                                                distance_matrix,
                                                                title="Difference (Modelled)")
 
-p <- cowplot::plot_grid(p_all_pairs, p_all_pairs_prediction, 
+titles <- lapply(c("a", "b", "c", "d"), function(x){ggdraw() + draw_label(x,x = 0,hjust = 0)})
+
+p <- cowplot::plot_grid(titles[[1]], titles[[2]], 
+                        titles[[3]], titles[[4]],
+                        p_all_pairs, p_all_pairs_prediction, 
                         p_all_pairs_kernel, p_all_pairs_prediction_kernel,
                         p_sequential, p_sequential_prediction,
                         p_sequential_kernel, p_sequential_prediction_kernel,
                         p_raster_difference_empirical, p_raster_difference_prediction,
                         p_kernel_difference_empirical, p_kernel_difference_prediction,
-                        nrow=3)
+                        nrow=4,
+                        rel_heights = c(0.1, 0.3, 0.3, 0.3))
 
 legend <- cowplot::get_legend(p_raster_difference_empirical + theme(legend.position = "bottom"))
 legend_left <- cowplot::plot_grid(legend, ggplot() + theme(panel.background = element_rect(fill="white")), nrow=1)
 p_with_legend <- cowplot::plot_grid(p, legend_left, nrow=2, rel_heights = c(0.92, 0.08))
 
-ggsave("output/figures/movement_raster_comparison.png",
+
+ggsave(tail(.args, 1),
        p_with_legend,
        width=12, height=9, units="in")
 

@@ -34,6 +34,18 @@ metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
 rownames(summary(all_pairs_model))
 
+all_pairs_total <- all_pairs$value_mean %>% sum()
+sequential_total <- sequential$value_mean %>% sum()
+
+scales::percent((all_pairs_total - sequential_total) / all_pairs_total)
+
+all_pairs_total_predicted <- sum(all_pairs_prediction$value)
+sequential_total_predicted <- sum(sequential_prediction$value)
+
+print(scales::comma(all_pairs_total_predicted))
+print(scales::comma(sum(sequential_total_predicted)))
+print(scales::percent((sequential_total_predicted - all_pairs_total_predicted) / all_pairs_total_predicted))
+
 ######
 # Compare gravity model parameter estimates
 
@@ -225,11 +237,68 @@ difference_scale_names <- levels(empirical_difference$value)
 difference_scale_values <- c('#67001f','#b2182b','#d6604d','#f4a582','#fddbc7','#d1e5f0','#92c5de','#4393c3','#2166ac','#053061')
 names(difference_scale_values) <- difference_scale_names
 
-p_dist <- ggplot() + 
-  geom_density(data=empirical_difference, aes(x=perc_difference)) + 
-  geom_density(data=prediction_difference, aes(x=perc_difference), color="red")
+population_classed <- population %>% 
+  mutate(population = cut(population, c(-Inf, 85000, 200000, Inf))) %>% 
+  mutate(population = factor(population, 
+                             levels=levels(population),
+                             labels = c("Low", "Mid", "High")))
 
-plotly::ggplotly(p_dist)
+population_classed %>% 
+  group_by(population) %>% 
+  summarise(n = n())
+
+p_population_density <- population %>% 
+  ggplot() + 
+  geom_density(aes(x = population), fill="grey", alpha = 0.4) + 
+  theme_classic() + 
+  scale_x_continuous(labels = scales::comma) + 
+  scale_y_continuous(labels = scales::comma) + 
+  geom_vline(aes(xintercept=85000), color="red") + 
+  geom_vline(aes(xintercept=200000), color="red") + 
+  annotate(geom="text", x = 42500, y = 0.00001, label='"Low"\n(n=97)') + 
+  annotate(geom="text", x = 142500, y = 0.00001, label='"Mid"\n(n=144)') + 
+  annotate(geom="text", x = 419068.3, y = 0.00001, label='"High"\n(n=30)') + 
+  labs(x = "Population", y = "Density")
+
+ggsave("output/figures/validation/population_distribition.png",
+       p_population_density,
+       width=8, height = 5, units="in")
+
+pred_difference_pop_classed <- prediction_difference %>%  
+  select(-value.x, -value.y) %>% 
+  left_join(population_classed, by = c("pcod_from" = "pcod2")) %>% 
+  rename(population_from = population) %>% 
+  left_join(population_classed, by = c("pcod_to" = "pcod2")) %>% 
+  rename(population_to = population)
+  
+trip_pop <- mapply(c, pred_difference_pop_classed$population_from, pred_difference_pop_classed$population_to, SIMPLIFY = FALSE)
+trip_pop <- lapply(trip_pop, sort)
+trip_pop <- lapply(trip_pop, function(x){paste0(x, collapse="_")}) %>% unlist()
+
+pred_difference_pop_classed$trip_pop <- trip_pop
+
+pred_difference_pop_classed %>% 
+  group_by(trip_pop) %>% 
+  summarise(perc_difference = mean(perc_difference))
+
+p_trip_model_difference <- pred_difference_pop_classed %>% 
+  mutate(trip_pop = factor(trip_pop, 
+                           levels = rev(c("High_High", "Mid_High", 
+                                          "Low_High", "Mid_Mid", 
+                                          "Low_Mid", "Low_Low")))) %>% 
+  ggplot() + 
+  geom_vline(aes(xintercept=0), color="red") + 
+  geom_boxplot(aes(x = perc_difference, y = trip_pop, fill=trip_pop),
+               outlier.size = 0.2) + 
+  theme_classic() + 
+  labs(y="Origin and destination populations (re-classified)", x="Difference between models (%)") + 
+  scale_fill_manual(values=c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#43a2ca','#0868ac')) + 
+  theme(legend.position = "none")
+
+ggsave("output/figures/p_trip_model_difference.png",
+       p_trip_model_difference,
+       width=10, height = 5.5, units="in")
+
 
 p_raster_difference_empirical <- plot_raster_network_difference(empirical_difference, 
                                scale_fill_manual(values = difference_scale_values),

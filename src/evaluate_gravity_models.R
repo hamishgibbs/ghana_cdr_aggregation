@@ -258,7 +258,8 @@ p_kernel_difference_prediction <- plot_network_distance_kernel_difference(predic
                                                                distance_matrix,
                                                                title="Difference (Modelled)")
 
-titles <- lapply(c("a", "b", "c", "d"), function(x){ggdraw() + draw_label(x,x = 0,hjust = 0)})
+titles <- lapply(c("a", "b", "c", "d"), function(x){
+  ggdraw() + draw_label(x,x = 0,hjust = 0) + theme(plot.margin = margin(0, 0, 0, 7))})
 
 p <- cowplot::plot_grid(titles[[1]], titles[[2]], 
                         titles[[3]], titles[[4]],
@@ -269,7 +270,7 @@ p <- cowplot::plot_grid(titles[[1]], titles[[2]],
                         p_raster_difference_empirical, p_raster_difference_prediction,
                         p_kernel_difference_empirical, p_kernel_difference_prediction,
                         nrow=4,
-                        rel_heights = c(0.1, 0.3, 0.3, 0.3))
+                        rel_heights = c(0.05, 0.3, 0.3, 0.3))
 
 legend <- cowplot::get_legend(p_raster_difference_empirical + theme(legend.position = "bottom"))
 legend_left <- cowplot::plot_grid(legend, ggplot() + theme(panel.background = element_rect(fill="white")), nrow=1)

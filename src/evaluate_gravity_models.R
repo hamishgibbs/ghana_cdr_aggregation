@@ -32,20 +32,6 @@ sequential_prediction <- read_rds(.args[8])
 
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
-rownames(summary(all_pairs_model))
-
-all_pairs_total <- all_pairs$value_mean %>% sum()
-sequential_total <- sequential$value_mean %>% sum()
-
-scales::percent((all_pairs_total - sequential_total) / all_pairs_total)
-
-all_pairs_total_predicted <- sum(all_pairs_prediction$value)
-sequential_total_predicted <- sum(sequential_prediction$value)
-
-print(scales::comma(all_pairs_total_predicted))
-print(scales::comma(sum(sequential_total_predicted)))
-print(scales::percent((sequential_total_predicted - all_pairs_total_predicted) / all_pairs_total_predicted))
-
 ######
 # Compare gravity model parameter estimates
 

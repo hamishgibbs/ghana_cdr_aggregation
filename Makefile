@@ -6,7 +6,8 @@ R_INTERPRETER = /usr/local/bin/Rscript
 default: \
 	${PWD}/output/figures/movement_raster_comparison.png \
 	${PWD}/output/figures/peak_infected_proportion_boxplot.png \
-	${PWD}/output/figures/modelled_trajectory.png
+	${PWD}/output/figures/modelled_trajectory.png \
+	${PWD}/output/figures/cell_sites_per_district.png
 
 ${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_gravity_models.R \
 		${PWD}/data/population/population_admin2.csv \
@@ -28,7 +29,13 @@ ${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_mode
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
-	${PWD}/data/geo/pcods_admin2.csv \
-	${PWD}/output/modelling/preliminary/all_pairs/*.rds \
-	${PWD}/output/modelling/preliminary/sequential/*.rds
+		${PWD}/data/geo/pcods_admin2.csv \
+		${PWD}/output/modelling/preliminary/all_pairs/*.rds \
+		${PWD}/output/modelling/preliminary/sequential/*.rds
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \
+		${PWD}/data/cell_sites/cell_sites_admin2.csv \
+		${PWD}/data/geo/admin2.geojson \
+		${PWD}/data/population/population_admin2.csv
 	$(R_INTERPRETER) $^ $@

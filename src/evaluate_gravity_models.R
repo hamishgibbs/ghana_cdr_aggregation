@@ -160,21 +160,12 @@ plot_network_distance_kernel <- function(network,
   journey_distances <- distance_matrix[cbind(network$pcod_from, network$pcod_to)]
   network$distance <- journey_distances
   
-  if (is.null(xlimits)){
-    limits <- list(
-      scale_y_continuous(trans="log10", labels = scales::comma),
-      scale_x_continuous(trans="log10"))
-  } else {
-    limits <- list(
-      scale_y_continuous(trans="log10", labels = scales::comma, limits = ylimits),
-      scale_x_continuous(trans="log10", limits = xlimits))
-  }
-  
   return (
     network %>% 
       ggplot(aes(x = distance, y = value)) + 
       geom_jitter(size=0.01) + 
-      limits + 
+      scale_y_continuous(trans="log10", labels = scales::comma, limits = ylimits) +
+      scale_x_continuous(trans="log10", limits = xlimits) +
       theme_classic() + 
       labs(x="Distance (km)", y = "Travellers", title=title) 
   )
@@ -335,21 +326,35 @@ p_raster_difference_prediction <- plot_raster_network_difference(prediction_diff
                                name_levels,
                                "Difference (Modelled)")
 
-plot_network_distance_kernel_difference <- function(network, distance_matrix, title){
+plot_network_distance_kernel_difference <- function(network, 
+                                                    distance_matrix, 
+                                                    xlimits=NULL, 
+                                                    ylimits=NULL, 
+                                                    title){
   return(
     plot_network_distance_kernel(network=network, distance_matrix=distance_matrix, 
+                                 xlimits=xlimits,
+                                 ylimits=ylimits,
                                  title=title) + 
-      scale_y_continuous() + labs(y = "Difference (%)") + 
+      scale_y_continuous(limits = ylimits) + labs(y = "Difference (%)") + 
       geom_hline(yintercept = 0, color="red", linetype="dashed", size=0.2)
   )
 }
 
+perc_difference <- c(empirical_difference$perc_difference, prediction_difference$perc_difference)
+
+difference_ylim <- c(min(perc_difference), max(perc_difference))
+
 p_kernel_difference_empirical <- plot_network_distance_kernel_difference(empirical_difference %>% select(-value) %>% rename(value=perc_difference), 
                                                                distance_matrix,
+                                                               ylimits = difference_ylim,
+                                                               xlimits = distance_kernel_xlim,
                                                                title="Difference (Empirical)")
 
 p_kernel_difference_prediction <- plot_network_distance_kernel_difference(prediction_difference %>% select(-value) %>% rename(value=perc_difference), 
                                                                distance_matrix,
+                                                               ylimits = difference_ylim,
+                                                               xlimits = distance_kernel_xlim,
                                                                title="Difference (Modelled)")
 
 titles <- lapply(c("a", "b", "c", "d"), function(x){

@@ -209,6 +209,12 @@ empirical_difference <- all_pairs %>%
   mutate(perc_difference = ((value_mean.x - value_mean.y) / value_mean.x)*100) %>% 
   drop_na(perc_difference)
 
+print(empirical_difference)
+print(empirical_difference %>% 
+        select(-value_sum.x, -value_sum.y) %>% 
+        filter(perc_difference < 0))
+stop()
+
 prediction_difference <- all_pairs_prediction %>% 
   left_join(sequential_prediction, by=c("pcod_from", "pcod_to")) %>% 
   mutate(perc_difference = ((value.x - value.y) / value.x)*100)

@@ -2,6 +2,39 @@ require(sf)
 require(igraph)
 require(tidyverse)
 
+if (interactive()){
+  .args <- c(
+    "data/networks/all_pairs_admin2.csv",
+    "data/networks/sequential_admin2.csv",
+    "data/population/population_admin2.csv",
+    "data/cell_sites/cell_sites_admin2.csv",
+    "data/geo/admin2.geojson",
+    "data/geo/journey_lines.geojson",
+    "output/figures/figure_1.png"
+  )
+} else {
+  .args <- commandArgs(trailingOnly = T)
+}
+
+all_pairs <- read_csv(.args[1])
+sequential <- read_csv(.args[2])
+
+population <- read_csv(.args[3])
+cell_sites <- read_csv(.args[4])
+
+a2 <- st_read(.args[5]) %>% 
+  mutate(geometry = st_make_valid(geometry)) %>% 
+  # slice(1) %>% 
+  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
+  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
+
+area <- a2 %>% st_drop_geometry() %>% 
+  select(pcod, area) %>% 
+  rename(pcod2 = pcod)
+#a2 %>% ggplot() + geom_sf()
+
+journey_lines <- st_read(.args[6])
+
 get_edge_number <- function(network){
   return(
     network %>% mutate(edge = paste0(pcod_from, pcod_to)) %>%
@@ -43,25 +76,6 @@ get_percentage_difference <- function(a, b){
     ((b - a) / a) * 100
   )
 }
-
-all_pairs <- read_csv("data/networks/all_pairs_admin2.csv")
-sequential <- read_csv("data/networks/sequential_admin2.csv")
-
-population <- read_csv("data/population/population_admin2.csv")
-cell_sites <- read_csv("data/cell_sites/cell_sites_admin2.csv")
-
-a2 <- st_read("data/geo/admin2.geojson") %>% 
-  mutate(geometry = st_make_valid(geometry)) %>% 
-  # slice(1) %>% 
-  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
-  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
-
-area <- a2 %>% st_drop_geometry() %>% 
-  select(pcod, area) %>% 
-  rename(pcod2 = pcod)
-#a2 %>% ggplot() + geom_sf()
-
-journey_lines <- st_read("data/geo/journey_lines.geojson")
 
 all_pairs_edges <- get_edge_number(all_pairs)
 sequential_edges <- get_edge_number(sequential)
@@ -151,7 +165,7 @@ p_trips <- cowplot::plot_grid(p_trips_out_pop, p_trips_cell_sites, ncol = 1)
 p <- cowplot::plot_grid(p_trips, p_net_ap, p_net_s, ncol = 3,
                         rel_widths = c(0.38, 0.31, 0.31))
 
-ggsave("output/figures/figure_1.png", 
+ggsave(tail(.args, 1), 
        p,
        width = 10, height=5, units='in')
             

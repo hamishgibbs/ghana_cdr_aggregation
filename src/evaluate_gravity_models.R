@@ -18,11 +18,11 @@ if(interactive()){
   .args <- commandArgs(trailingOnly = T)
 }
 
-population <- read_csv(.args[1])
+population <- read_csv(.args[1], col_types = cols())
 distance_matrix <- read_rds(.args[2])
 
-all_pairs <- read_csv(.args[3]) 
-sequential <- read_csv(.args[4])
+all_pairs <- read_csv(.args[3], col_types = cols()) 
+sequential <- read_csv(.args[4], col_types = cols())
 
 all_pairs_model <- read_rds(.args[5])
 sequential_model <- read_rds(.args[6])
@@ -151,33 +151,72 @@ plot_raster_network <- function(network, fill_scale, name_levels,
   
 }
 
-plot_network_distance_kernel <- function(network, distance_matrix, title=NULL){
+plot_network_distance_kernel <- function(network, 
+                                         distance_matrix, 
+                                         xlimits=NULL, 
+                                         ylimits=NULL, 
+                                         title=NULL){
   
   journey_distances <- distance_matrix[cbind(network$pcod_from, network$pcod_to)]
   network$distance <- journey_distances
+  
+  if (is.null(xlimits)){
+    limits <- list(
+      scale_y_continuous(trans="log10", labels = scales::comma),
+      scale_x_continuous(trans="log10"))
+  } else {
+    limits <- list(
+      scale_y_continuous(trans="log10", labels = scales::comma, limits = ylimits),
+      scale_x_continuous(trans="log10", limits = xlimits))
+  }
+  
   return (
     network %>% 
-      ggplot() + 
-      geom_jitter(aes(x = distance, y = value), size=0.01) + 
-      scale_y_continuous(trans="log10", labels = scales::comma) + 
-      scale_x_continuous(trans="log10") + 
+      ggplot(aes(x = distance, y = value)) + 
+      geom_jitter(size=0.01) + 
+      limits + 
       theme_classic() + 
       labs(x="Distance (km)", y = "Travellers", title=title) 
   )
 }
 
+plot_smooth_line_and_equation <- function(){
+  return(
+    list(geom_smooth(method="lm", level=0.90, size=0.3),
+         ggpubr::stat_regline_equation(label.x.npc = 0.6, label.y.npc = 1, size=3),
+         ggpubr::stat_cor(aes(label = ..r.label..), label.x.npc = 0.6, label.y.npc = 0.9, size=3))
+  )
+}
+
+distance_kernel_ylim <- c(min(c(all_pairs$value_mean, sequential$value_mean, all_pairs_prediction$value, sequential_prediction$value)),
+                          max(c(all_pairs$value_mean, sequential$value_mean, all_pairs_prediction$value, sequential_prediction$value)))
+
+distance_kernel_xlim <- c(1, max(distance_matrix))
+
 p_all_pairs_kernel <- plot_network_distance_kernel(all_pairs %>% rename(value=value_mean), 
                                                    distance_matrix,
-                                                   title="All Pairs (Empirical)")
+                                                   ylimits = distance_kernel_ylim,
+                                                   xlimits = distance_kernel_xlim,
+                                                   title="All Pairs (Empirical)") + 
+  plot_smooth_line_and_equation() 
 p_sequential_kernel <- plot_network_distance_kernel(sequential %>% rename(value=value_mean), 
                                                     distance_matrix,
-                                                    title="Sequential (Empirical)")
+                                                    ylimits = distance_kernel_ylim,
+                                                    xlimits = distance_kernel_xlim,
+                                                    title="Sequential (Empirical)") + 
+  plot_smooth_line_and_equation() 
 p_all_pairs_prediction_kernel <- plot_network_distance_kernel(all_pairs_prediction, 
                                                               distance_matrix,
-                                                              title="All Pairs (Modelled)")
+                                                              ylimits = distance_kernel_ylim,
+                                                              xlimits = distance_kernel_xlim,
+                                                              title="All Pairs (Modelled)") + 
+  plot_smooth_line_and_equation() 
 p_sequential_prediction_kernel <- plot_network_distance_kernel(sequential_prediction, 
                                                               distance_matrix,
-                                                              title="Sequential (Modelled)")
+                                                              ylimits = distance_kernel_ylim,
+                                                              xlimits = distance_kernel_xlim,
+                                                              title="Sequential (Modelled)") + 
+  plot_smooth_line_and_equation() 
 
 p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean), fill_scale=fill_scale, 
                                    name_levels=name_levels,
@@ -208,12 +247,6 @@ empirical_difference <- all_pairs %>%
   left_join(sequential, by=c("pcod_from", "pcod_to")) %>% 
   mutate(perc_difference = ((value_mean.x - value_mean.y) / value_mean.x)*100) %>% 
   drop_na(perc_difference)
-
-print(empirical_difference)
-print(empirical_difference %>% 
-        select(-value_sum.x, -value_sum.y) %>% 
-        filter(perc_difference < 0))
-stop()
 
 prediction_difference <- all_pairs_prediction %>% 
   left_join(sequential_prediction, by=c("pcod_from", "pcod_to")) %>% 

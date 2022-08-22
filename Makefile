@@ -8,7 +8,8 @@ default: \
 	${PWD}/output/figures/peak_infected_proportion_boxplot.png \
 	${PWD}/output/figures/modelled_trajectory.png \
 	${PWD}/output/figures/cell_sites_per_district.png \
-	data_cleaning
+	data_cleaning \
+	${PWD}/output/figures/figure_1.png
 
 data_cleaning: \
 	${PWD}/data/networks/all_pairs_admin2.csv
@@ -48,4 +49,13 @@ ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_pe
 		${PWD}/data/cell_sites/cell_sites_admin2.csv \
 		${PWD}/data/geo/admin2.geojson \
 		${PWD}/data/population/population_admin2.csv
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/figure_1.png: ${PWD}/src/compare_networks.R \
+		${PWD}/data/networks/all_pairs_admin2_timeseries.csv \
+		${PWD}/data/networks/sequential_admin2_timeseries.csv \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/cell_sites/cell_sites_admin2.csv \
+		${PWD}/data/geo/admin2.geojson \
+		${PWD}/data/geo/journey_lines.geojson
 	$(R_INTERPRETER) $^ $@

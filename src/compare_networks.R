@@ -1,11 +1,13 @@
-require(sf)
-require(igraph)
-require(tidyverse)
+suppressPackageStartupMessages({
+  require(sf)
+  require(igraph)
+  require(tidyverse)
+})
 
 if (interactive()){
   .args <- c(
-    "data/networks/all_pairs_admin2.csv",
-    "data/networks/sequential_admin2.csv",
+    "data/networks/all_pairs_admin2_timeseries.csv",
+    "data/networks/sequential_admin2_timeseries.csv",
     "data/population/population_admin2.csv",
     "data/cell_sites/cell_sites_admin2.csv",
     "data/geo/admin2.geojson",
@@ -16,24 +18,22 @@ if (interactive()){
   .args <- commandArgs(trailingOnly = T)
 }
 
-all_pairs <- read_csv(.args[1])
-sequential <- read_csv(.args[2])
+all_pairs <- read_csv(.args[1], col_types = cols())
+sequential <- read_csv(.args[2], col_types = cols())
 
-population <- read_csv(.args[3])
-cell_sites <- read_csv(.args[4])
+population <- read_csv(.args[3], col_types = cols())
+cell_sites <- read_csv(.args[4], col_types = cols())
 
-a2 <- st_read(.args[5]) %>% 
+a2 <- st_read(.args[5], quiet=T) %>% 
   mutate(geometry = st_make_valid(geometry)) %>% 
-  # slice(1) %>% 
   st_simplify(preserveTopology = T, dTolerance = 100) %>% 
   mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
 
 area <- a2 %>% st_drop_geometry() %>% 
   select(pcod, area) %>% 
   rename(pcod2 = pcod)
-#a2 %>% ggplot() + geom_sf()
 
-journey_lines <- st_read(.args[6])
+journey_lines <- st_read(.args[6], quiet=T)
 
 get_edge_number <- function(network){
   return(
@@ -42,11 +42,20 @@ get_edge_number <- function(network){
 }
 get_trip_number <- function(network){
   return(
-    network %>% pull(value_sum) %>% sum()
+    network %>% pull(value) %>% sum()
   )
 }
+
+sum_network_edges <- function(network){
+  return(
+    network %>% 
+      group_by(pcod_from, pcod_to) %>% 
+      summarise(value_sum = sum(value), .groups="drop")
+  )
+}
+
 network_to_graph <- function(network){
-  network_data <- network %>% 
+  network_data <- sum_network_edges(network) %>% 
     rename(from = pcod_from,
            to = pcod_to,
            weight = value_sum)
@@ -62,7 +71,7 @@ get_network_mean_degree <- function(network){
 }
 
 get_network_weighted_mean_distance <- function(network){
-  distance_assigned <- network %>% 
+  distance_assigned <- sum_network_edges(network) %>% 
     left_join(journey_lines %>% 
                 mutate(len_km = as.numeric(units::set_units(st_length(geometry), "km"))) %>% 
                 st_drop_geometry(),
@@ -95,7 +104,7 @@ sequential_weighted_mean_distance <- get_network_weighted_mean_distance(sequenti
 total_trips_from_origin <- function(network, type){
   return (network %>% 
     group_by(pcod_from) %>% 
-    summarise(value = sum(value_mean)) %>% 
+    summarise(value = sum(value)) %>% 
     left_join(area, by = c("pcod_from" = "pcod2")) %>% 
     left_join(population, by = c("pcod_from" = "pcod2")) %>% 
     left_join(cell_sites, by = c("pcod_from" = "pcod2")) %>% 
@@ -134,11 +143,11 @@ p_trips_cell_sites <- rbind(ds, da) %>%
   point_plot_theme
 
 
-combined_networks <- rbind(all_pairs, sequential)
+combined_networks <- rbind(sum_network_edges(all_pairs), sum_network_edges(sequential))
 
 size_scale <- scale_size_continuous(range=c(0.01,1), 
-                      limits = c(min(combined_networks$value_mean), 
-                                 max(combined_networks$value_mean)))
+                      limits = c(min(combined_networks$value_sum), 
+                                 max(combined_networks$value_sum)))
 
 plot_network <- function(network, size_scale, a2){
   return (network %>% 
@@ -146,7 +155,7 @@ plot_network <- function(network, size_scale, a2){
             st_as_sf() %>% 
             ggplot() + 
             geom_sf(data=a2, color="black", fill="white", size=0.2) +
-            geom_sf(aes(size = value_mean)) + 
+            geom_sf(aes(size = value_sum)) + 
             size_scale +
             theme_void() + 
             theme(legend.position = "none",
@@ -154,10 +163,10 @@ plot_network <- function(network, size_scale, a2){
 }
 annotation_pos <- list(x=-1, y=10, size=3, hjust=0)
 
-p_net_ap <- plot_network(all_pairs, size_scale, a2) + 
+p_net_ap <- plot_network(sum_network_edges(all_pairs), size_scale, a2) + 
   labs(title="c", subtitle = "All Pairs Aggregation")
   
-p_net_s <- plot_network(sequential, size_scale, a2) + 
+p_net_s <- plot_network(sum_network_edges(sequential), size_scale, a2) + 
   labs(title="d", subtitle = "Sequential Aggregation")
   
 p_trips <- cowplot::plot_grid(p_trips_out_pop, p_trips_cell_sites, ncol = 1)

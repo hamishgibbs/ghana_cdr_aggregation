@@ -7,7 +7,17 @@ default: \
 	${PWD}/output/figures/movement_raster_comparison.png \
 	${PWD}/output/figures/peak_infected_proportion_boxplot.png \
 	${PWD}/output/figures/modelled_trajectory.png \
-	${PWD}/output/figures/cell_sites_per_district.png
+	${PWD}/output/figures/cell_sites_per_district.png \
+	data_cleaning
+
+data_cleaning: \
+	${PWD}/data/networks/all_pairs_admin2.csv
+
+
+${PWD}/data/networks/all_pairs_admin2.csv: ${PWD}/src/aggregate_networks.R \
+		${PWD}/../../LSHTM/Filr/My_Files/Projects/Ghana/movement/update_09_2021/home/flowkit/playground/data/sensitive/aggregates/trips_per_day_admin2.*.csv \
+		${PWD}/../../LSHTM/Filr/My_Files/Projects/Ghana/movement/consecutive_trips/data/consecutive_trips_od_matrix_admin.csv
+	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_gravity_models.R \
 		${PWD}/data/population/population_admin2.csv \

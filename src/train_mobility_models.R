@@ -10,12 +10,10 @@ if (interactive()){
     "data/networks/all_pairs_admin2.csv",
     ""
   )
-  MOBILITY_NETWORK_TYPE <- "all_pairs"
   MOBILITY_MODEL <- "gravity"
   MOBILITY_MODEL_TYPE <- "power"
 } else {
   .args <- commandArgs(trailingOnly = T)
-  MOBILITY_NETWORK_TYPE <- Sys.getenv("MOBILITY_NETWORK_TYPE")
   MOBILITY_MODEL <- Sys.getenv("MOBILITY_MODEL")
   MOBILITY_MODEL_TYPE <- Sys.getenv("MOBILITY_MODEL_TYPE")
 }
@@ -24,6 +22,9 @@ population <- read_csv(.args[1], col_types = cols())
 distance_matrix <- read_rds(.args[2])
 
 network <- read_csv(.args[3], col_types = cols()) 
+
+network_fn_split <- stringr::str_split(.args[3], "/")
+MOBILITY_NETWORK_TYPE <- gsub("_admin2.csv", "", network_fn_split[[1]][length(network_fn_split[[1]])])
 
 create_model_inputs <- function(population, distance, network){
   
@@ -72,7 +73,9 @@ write_rds(model, paste0(fn_prefix, ".rds"))
 
 write_rds(predict(model), paste0(fn_prefix, "_predictions.rds"))
 
-write_csv(summary(model), paste0(fn_prefix, "_summary.csv"))
+if (MOBILITY_MODEL == "gravity"){
+  write_csv(summary(model), paste0(fn_prefix, "_summary.csv")) 
+}
 
 png(filename=paste0(fn_prefix, "_check.png"),
     width=2000, height=1500)

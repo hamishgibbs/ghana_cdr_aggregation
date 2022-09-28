@@ -7,8 +7,8 @@ source("src/utils/mobility_type_scales.R")
 if (interactive()){
   .args <- c(
     "data/geo/pcods_admin2.csv",
-    list.files("output/modelling/preliminary/all_pairs", full.names = T),
-    list.files("output/modelling/preliminary/sequential", full.names = T),
+    list.files("data/epi_modelling/results/focus_locs/all_pairs", full.names = T),
+    list.files("data/epi_modelling/results/focus_locs/sequential", full.names = T),
     "output/figures/modelled_trajectory.png"
   )
 } else {
@@ -63,6 +63,8 @@ p_time_series <- trajectories_density %>%
   labs(y = "Number of infections", x = "Time") + 
   mobility_type_color_scale + 
   mobility_type_fill_scale
+
+plotly::ggplotly(p_time_series)
 
 ggsave(tail(.args, 1),
        p_time_series,

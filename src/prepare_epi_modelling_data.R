@@ -69,4 +69,8 @@ daily_events <- do.call(rbind, daily_events)
 write_rds(daily_events, tail(.args, 1))
 write_rds(pop, "data/epi_modelling/population.rds")
 write_rds(recoded_pcod2, "data/epi_modelling/recoded_pcod.rds")
+write_csv(pop %>% select(-population), "data/epi_modelling/intro_locs_all.csv")
+write_csv(pop %>% select(-population) %>% 
+            filter(pcod2 %in% c("fid146", "fid164", "fid029", "fid240", "fid207")), 
+          "data/epi_modelling/intro_locs_focus.csv")
 

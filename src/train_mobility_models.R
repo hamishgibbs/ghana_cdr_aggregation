@@ -11,7 +11,7 @@ if (interactive()){
     ""
   )
   MOBILITY_MODEL <- "gravity"
-  MOBILITY_MODEL_TYPE <- "power"
+  MOBILITY_MODEL_TYPE <- "basic"
 } else {
   .args <- commandArgs(trailingOnly = T)
   MOBILITY_MODEL <- Sys.getenv("MOBILITY_MODEL")
@@ -81,5 +81,9 @@ png(filename=paste0(fn_prefix, "_check.png"),
     width=2000, height=1500)
 check_results <- mobility::check(model)
 dev.off()
+
+if (is.null(check_results$DIC)){
+  check_results$DIC <- 0
+}
 
 write_csv(data.frame(check_results), paste0(fn_prefix, "_check.csv"))

@@ -36,13 +36,16 @@ output_path <- paste(output_fn_split[1:(length(output_fn_split)-1)], collapse="/
 processed_files <- list.files(output_path)
 intro_locations_to_process <- list()
 
-# optimization to remove any introduction locations that have 
+# this target should output one dummy file
+# it should look through the filenames and
+
+# optimization to remove any introduction locations that have
 # already been processed (identifies output fns present N_MODEL_RUNS times)
 for (intro_location in intro_locations){
   n_processed <- sum(stringr::str_detect(processed_files, intro_location$pcod2))
-  
+
   if (n_processed != N_MODEL_RUNS){
-    intro_locations_to_process[[length(intro_locations_to_process)+1]] <- intro_location 
+    intro_locations_to_process[[length(intro_locations_to_process)+1]] <- intro_location
   }
 }
 
@@ -52,27 +55,48 @@ model_run_number <- 1
 for (infected_location in intro_locations_to_process){
   for (sample in 1:N_MODEL_RUNS){
     t1 <- Sys.time()
-    
+
     model <- run_seir_model(infected_location=infected_location$node,
                             population=model_format_pop,
                             events=events,
                             R0=MODEL_R0_VALUE)
-    
+
+    # this should be an abstracted function transform_seir_model_results in seir_model
     model_result <- run(model)
     model_trajectory <- trajectory(model_result)
     model_trajectory$mobility_type <- MOBILITY_NETWORK_TYPE
     model_trajectory$introduction_location <- infected_location$pcod2
     model_trajectory$R0 <- MODEL_R0_VALUE
     model_trajectory$sample <- sample
-    
-    write_rds(model_trajectory, paste0(output_path, 
+
+    write_rds(model_trajectory, paste0(output_path,
                                        "/infected_", infected_location$pcod2,
                                        "_trajectory_", sample, ".rds"))
-    
+
     t2 <- Sys.time()
-    
+
+    rm(model)
+    rm(model_result)
+    gc()
+
+    # Optimization - truncate events based on the length of the first epidemic
+    if (model_run_number == 1){
+      model_total_i <- model_trajectory %>% group_by(time) %>% summarise(I = sum(I))
+      peak_timing <- model_trajectory %>% group_by(time) %>% summarise(I = sum(I)) %>%
+        top_n(1, wt=I) %>% pull(time)
+      epidemic_end <- model_total_i %>%
+        filter(time > peak_timing & I == 0) %>% pull(time) %>% min()
+      max_event_times <- max(events$time)
+      event_time_cutoff <- min(max_event_times, epidemic_end * 2)
+      print(max_event_times)
+      print(event_time_cutoff)
+      events <- events %>%
+        filter(time <= event_time_cutoff)
+      # vector memory exhausted
+    }
+
     files_processed <- (intro_locs_already_processed * N_MODEL_RUNS) + model_run_number
-    print(paste0("Progress: ", scales::percent(files_processed / (length(intro_locations)*N_MODEL_RUNS)), 
+    print(paste0("Progress: ", scales::percent(files_processed / (length(intro_locations)*N_MODEL_RUNS)),
                  " (", round(as.numeric(t2-t1,units="secs"), 0), " seconds)"))
     model_run_number <- model_run_number + 1
   }

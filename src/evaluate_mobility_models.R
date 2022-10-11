@@ -9,10 +9,11 @@ if(interactive()){
               "data/distance/distance_matrix_admin2.rds",
               "data/networks/all_pairs_admin2.csv",
               "data/networks/sequential_admin2.csv",
-              "output/gravity_modelling/all_pairs_model.rds",
-              "output/gravity_modelling/sequential_model.rds",
-              "output/gravity_modelling/all_pairs_model_predictions.rds",
-              "output/gravity_modelling/sequential_model_predictions.rds",
+              "data/mobility_modelling/gravity_power/all_pairs_model.rds",
+              "data/mobility_modelling/gravity_power/sequential_model.rds",
+              "data/mobility_modelling/gravity_power/all_pairs_model_predictions.rds",
+              "data/mobility_modelling/gravity_power/sequential_model_predictions.rds",
+              "data/geo/admin2.geojson",
               "output/figures/movement_raster_comparison.png")
 } else {
   .args <- commandArgs(trailingOnly = T)
@@ -29,6 +30,11 @@ sequential_model <- read_rds(.args[6])
 
 all_pairs_prediction <- read_rds(.args[7])
 sequential_prediction <- read_rds(.args[8])
+
+a2 <- st_read(.args[9]) %>% 
+  mutate(geometry = st_make_valid(geometry)) %>% 
+  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
+  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
 
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
@@ -73,12 +79,6 @@ get_model_summary_difference(all_pairs_model$summary, sequential_model$summary)
 
 ######
 # Plot gravity model comparison
-
-a2 <- st_read("data/geo/admin2.geojson") %>% 
-  mutate(geometry = st_make_valid(geometry)) %>% 
-  # slice(1) %>% 
-  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
-  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
 
 a2_lat_long <- a2 %>% select(-centroid, -area) %>% 
   st_centroid() %>% 

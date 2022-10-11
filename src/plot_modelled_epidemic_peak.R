@@ -6,34 +6,47 @@ source("src/utils/mobility_type_scales.R")
 
 if (interactive()){
   .args <- c(
-    "data/modelling/recoded_pcod.rds",
     "data/geo/pcods_admin2.csv",
     "data/population/population_admin2.csv",
-    list.files("output/modelling/preliminary/all_pairs", pattern="_sample_1_", full.names = T),
-    list.files("output/modelling/preliminary/sequential", pattern="_sample_1_", full.names = T),
+    "data/epi_modelling/results/focus_locs/focus_locs_results.csv",
     "output/figures/peak_infected_proportion_boxplot.png"
   )
 } else {
   .args <- commandArgs(trailingOnly = T)
 }
 
-pcods <- read_rds(.args[1])
-pcods_a2 <- read.csv(.args[2], header = F, col.names = c("pcod", "name2"))
+pcods_a2 <- read.csv(.args[1], header = F, col.names = c("pcod", "name2"))
 
-population <- read_csv(.args[3])
+population <- read_csv(.args[2], col_types=cols())
 
-pcod_lookup <- data.frame(pcod=names(pcods), pcod_numeric=pcods)
+trajectories <- read_csv(.args[3], col_types=cols())
 
-trajectories <- list()
+national_epidemics <- trajectories %>% group_by(time, mobility_type, R0, introduction_location, sample) %>% 
+  summarise(I = sum(I), .groups="drop")
 
-trajectory_indices <- c(4:(length(.args) -1))
+national_epidemics %>% 
+  group_by(mobility_type, R0, introduction_location, sample) %>% 
+  filter(I == max(I), R0 == 3) %>% 
+  ggplot() + 
+  geom_boxplot(aes(x = time, y = mobility_type, fill = mobility_type)) + 
+  facet_grid(R0 ~ introduction_location)
 
-for (i in 1:length(trajectory_indices)){
-  trajectories[[i]] <- read_rds(.args[trajectory_indices[i]]) %>% 
-    select(node, time, I, mobility_type, R0, introduction_location)
-}
 
-trajectories <- do.call(rbind, trajectories)
+mean_national_epidemics <- national_epidemics %>% 
+  group_by(mobility_type, R0, introduction_location, time) %>% 
+  summarise(I = mean(I), .groups="drop")
+
+mean_national_epidemics %>% 
+  group_by(mobility_type, R0, introduction_location) %>% 
+  filter(I == max(I)) %>% 
+  pivot_wider(names_from = mobility_type, values_from = c(I, time)) %>% 
+  mutate(I_difference = scales::percent((I_all_pairs - I_sequential) / I_all_pairs, accuracy=0.01),
+         time_difference = scales::percent((time_all_pairs - time_sequential) / time_all_pairs, accuracy=0.01)) %>% 
+  arrange(introduction_location) %>% 
+  select(R0, introduction_location, I_difference, time_difference)
+
+# also do a comparison of the infection tree (is this possible?)
+  
 
 trajectories_named <- trajectories %>% 
   left_join(pcods_a2, by=c("introduction_location" = "pcod")) %>% 

@@ -7,7 +7,8 @@ source("src/utils/mobility_type_scales.R")
 if (interactive()){
   .args <- c(
     "data/geo/pcods_admin2.csv",
-    list.files("data/epi_modelling/results/focus_locs", 
+    "data/population/population_admin2.csv",
+    list.files("data/epi_modelling/results/all_intro_locs", 
                pattern=".rds", recursive = T, full.names = T),
     "output/figures/modelled_trajectory.png"
   )
@@ -16,10 +17,11 @@ if (interactive()){
 }
 
 pcods_a2 <- read.csv(.args[1], header = F, col.names = c("pcod", "name2"))
+population <- read_csv(.args[2], col_types = cols())
 
 trajectories <- list()
 
-trajectory_indices <- c(2:(length(.args) -1))
+trajectory_indices <- c(3:(length(.args) -1))
 
 for (i in 1:length(trajectory_indices)){
   trajectories[[i]] <- read_rds(.args[trajectory_indices[i]]) %>% 
@@ -30,10 +32,21 @@ for (i in 1:length(trajectory_indices)){
 
 trajectories <- do.call(rbind, trajectories)
 
-trajectories %>% filter(R0 == 1.5) %>% group_by(time, introduction_location, mobility_type, sample) %>% summarise(I = sum(I)) %>%
+trajectories %>% 
+  filter(R0 == 1.25) %>% 
   ggplot() + 
-  geom_path(aes(x = time, y = I, color=mobility_type, group=sample)) + 
-  facet_wrap(~introduction_location)
+  geom_path(aes(x = time, y = I, color=introduction_location)) + 
+  theme(legend.position = "none")
+
+
+trajectories %>% 
+  filter(R0 == 1.5) %>% 
+  group_by(introduction_location) %>% 
+  top_n(1, wt=I) %>% 
+  left_join(population, by = c("introduction_location" = "pcod2")) %>% 
+  ggplot() + 
+  geom_point(aes(x = population, y = time))
+
 
 trajectories_named <- trajectories %>% 
   left_join(pcods_a2, by=c("introduction_location" = "pcod")) %>% 
@@ -60,7 +73,7 @@ p_time_series <- trajectories_density %>%
   geom_ribbon(aes(x = time, ymin=lower_90, ymax=upper_90, fill=mobility_type), alpha=0.2) + 
   geom_ribbon(aes(x = time, ymin=lower_50, ymax=upper_50, fill=mobility_type), alpha=0.2) + 
   geom_path(aes(x = time, y = avg, color=mobility_type), size=0.3) + 
-  #geom_path(data=trajectories_named, aes(x = time, y = I, color=mobility_type, group=sample), size=0.3) + 
+  geom_path(data=trajectories_named, aes(x = time, y = I, color=mobility_type, group=sample), size=0.3) + 
   facet_grid(R0 ~ introduction_location, scales="free") + 
   scale_y_continuous(labels = scales::comma) + 
   theme_classic() + 

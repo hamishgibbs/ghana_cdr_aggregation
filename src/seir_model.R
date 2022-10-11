@@ -30,7 +30,7 @@ run_seir_model <- function(infected_location,
   I <- rep(0, length(population))
   
   # Assign n individuals to one introduction location
-  I[infected_location] <- 10
+  I[infected_location] <- 100
   
   R <- rep(0, length(population))
   

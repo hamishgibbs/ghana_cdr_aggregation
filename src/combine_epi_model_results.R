@@ -26,11 +26,15 @@ trajectories <- do.call(rbind, trajectories)
 
 write_csv(trajectories, tail(.args, 1))
 
-trajectory_peaks <- trajectories %>% 
+national_trajectories <- trajectories %>% 
+  group_by(time, mobility_network_type, R0, introduction_location, sample) %>% 
+  summarise(I = sum(I), .groups="drop")
+  
+write_csv(national_trajectories, gsub(".csv", "_national.csv", tail(.args, 1)))
+
+trajectory_peaks <- national_trajectories %>%
   group_by(mobility_network_type, R0, introduction_location, sample) %>% 
   top_n(1, wt=I)
-/?
-  \
 
-write_csv(trajectory_peaks, gsub(".rds", "_peaks.rds", tail(.args, 1)))
+write_csv(trajectory_peaks, gsub(".csv", "_national_peaks.csv", tail(.args, 1)))
 

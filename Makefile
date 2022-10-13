@@ -5,7 +5,6 @@ R_INTERPRETER = /usr/local/bin/Rscript
 
 default: \
 	${PWD}/output/figures/movement_raster_comparison.png \
-	${PWD}/output/figures/peak_infected_proportion_boxplot.png \
 	${PWD}/output/figures/modelled_trajectory.png \
 	${PWD}/output/figures/cell_sites_per_district.png \
 	${PWD}/output/figures/figure_1.png \
@@ -244,7 +243,7 @@ ${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_mode
 
 ${PWD}/output/figures/modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
-		${PWD}/data/epi_modelling/results/focus_locs/epi_model_results_focus_locs.csv
+		${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \

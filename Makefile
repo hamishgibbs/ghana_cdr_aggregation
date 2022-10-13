@@ -25,32 +25,22 @@ mobility_modelling: \
 	${PWD}/output/figures/movement_raster_comparison.png
 
 epi_modelling_results: \
-	${PWD}/data/epi_modelling/results/focus_locs/focus_locs_results.csv
+	${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv \
+	${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results.csv \
+	${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv
 
 epi_modelling: \
 	epi_modelling_data_preparation \
-	epi_modelling_focus_locations \
-	epi_modelling_all_locations
-
-epi_modelling_focus_locations: \
-	${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_3/infected_fid240_trajectory_10.rds \
-	${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_1.25/infected_fid240_trajectory_10.rds \
-	${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_1.5/infected_fid240_trajectory_10.rds \
-	${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_1.25/infected_fid240_trajectory_10.rds \
-	${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_1.5/infected_fid240_trajectory_10.rds \
-	${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_3/infected_fid240_trajectory_10.rds
-
-epi_modelling_all_locations: \
-	${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_1.25/infected_fid270_trajectory_1.rds \
-	${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_1.5/infected_fid270_trajectory_1.rds \
-	${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_3/infected_fid270_trajectory_1.rds \
-	${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_1.25/infected_fid270_trajectory_1.rds \
-	${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_1.5/infected_fid270_trajectory_1.rds \
-	${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_3/infected_fid270_trajectory_1.rds
+	${PWD}/data/epi_modelling/results/DONE_ALL_LOCS.rds \
+	${PWD}/data/epi_modelling/results/DONE_FOCUS_LOCS.rds
 
 epi_modelling_data_preparation: \
-	${PWD}/data/epi_modelling/all_pairs_events.rds \
-	${PWD}/data/epi_modelling/sequential_events.rds
+	${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds \
+	${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds \
+	${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds \
+	${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds \
+	${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
+	${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds
 
 data_cleaning: \
 	${PWD}/data/networks/all_pairs_admin2.csv
@@ -153,136 +143,97 @@ ${PWD}/output/tables/mobility_model_comparison.csv: ${PWD}/src/compare_mobility_
 
 ########## EPI MODELLING ##########
 
-${PWD}/data/epi_modelling/all_pairs_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model_predictions.rds
+	export N_MODEL_DATES="1500" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/mobility_modelling/gravity_exp/sequential_model_predictions.rds
+	export N_MODEL_DATES="1500" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
 		${PWD}/data/population/population_admin2.csv \
 		${PWD}/data/mobility_modelling/gravity_power/all_pairs_model_predictions.rds
 	export N_MODEL_DATES="1500" && \
 	$(R_INTERPRETER) $^ $@
 
-${PWD}/data/epi_modelling/sequential_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
 		${PWD}/data/population/population_admin2.csv \
 		${PWD}/data/mobility_modelling/gravity_power/sequential_model_predictions.rds
 	export N_MODEL_DATES="1500" && \
 	$(R_INTERPRETER) $^ $@
 
+${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model_predictions.rds
+	export N_MODEL_DATES="1500" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds: ${PWD}/src/prepare_epi_modelling_data.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/mobility_modelling/radiation_basic/sequential_model_predictions.rds
+	export N_MODEL_DATES="1500" && \
+	$(R_INTERPRETER) $^ $@
+
 ########## EPI MODELLING (5 Focus locations) ##########
 
-${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_1.25/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
+${PWD}/data/epi_modelling/results/DONE_FOCUS_LOCS.rds: ${PWD}/src/run_seir_model.R \
 		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="1.25" && \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_1.5/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="1.5" && \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/focus_locs/all_pairs/R0_3/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="3" && \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_1.25/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="1.25" && \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_1.5/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="1.5" && \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/focus_locs/sequential/R0_3/infected_fid240_trajectory_10.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_focus.csv
-	export MODEL_R0_VALUE="3" && \
+		${PWD}/data/epi_modelling/population.rds \
+		${PWD}/data/epi_modelling/intro_locs_focus.csv \
+		${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds \
+    ${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds
 	export N_MODEL_RUNS="10" && \
 	$(R_INTERPRETER) $^ $@
 
 ########## EPI MODELLING (all introduction locations) ##########
 
-${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_1.25/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
+${PWD}/data/epi_modelling/results/DONE_ALL_LOCS.rds: ${PWD}/src/run_seir_model.R \
 		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="1.25" && \
+		${PWD}/data/epi_modelling/population.rds \
+		${PWD}/data/epi_modelling/intro_locs_all.csv \
+		${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds \
+    ${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
+    ${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds
 	export N_MODEL_RUNS="1" && \
 	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_1.5/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="1.5" && \
-	export N_MODEL_RUNS="1" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/all_intro_locs/all_pairs/R0_3/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/all_pairs_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="3" && \
-	export N_MODEL_RUNS="1" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_1.25/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="1.25" && \
-	export N_MODEL_RUNS="1" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_1.5/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="1.5" && \
-	export N_MODEL_RUNS="1" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/epi_modelling/results/all_intro_locs/sequential/R0_3/infected_fid270_trajectory_1.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-	  ${PWD}/data/epi_modelling/population.rds \
-	  ${PWD}/data/epi_modelling/sequential_events.rds \
-		${PWD}/data/epi_modelling/intro_locs_all.csv
-	export MODEL_R0_VALUE="3" && \
-	export N_MODEL_RUNS="1" && \
-	$(R_INTERPRETER) $^ $@
-
 
 ########## EPI MODEL EVALUATION ##########
 
-${PWD}/data/epi_modelling/results/focus_locs/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
-		${PWD}/data/epi_modelling/results/focus_locs/all_pairs/**/*.rds \
-		${PWD}/data/epi_modelling/results/focus_locs/sequential/**/*.rds
+# combine focus and all locs separately
+${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid029*.rds \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid146*.rds \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid164*.rds \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid207*.rds \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid240*.rds
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid029*.rds \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid146*.rds \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid164*.rds \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid207*.rds \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid240*.rds
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid029*.rds \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid146*.rds \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid164*.rds \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid207*.rds \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_modelled_epidemic_peak.R \

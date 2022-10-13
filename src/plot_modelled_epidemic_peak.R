@@ -8,8 +8,8 @@ if (interactive()){
   .args <- c(
     "data/geo/pcods_admin2.csv",
     "data/population/population_admin2.csv",
-    "data/epi_modelling/results/focus_locs/focus_locs_results.csv",
-    "output/figures/peak_infected_proportion_boxplot.png"
+    "data/epi_modelling/results/gravity_exp/focus_locs_results.csv",
+    "output/figures/gravity_exp/peak_infected_proportion_boxplot.png"
   )
 } else {
   .args <- commandArgs(trailingOnly = T)

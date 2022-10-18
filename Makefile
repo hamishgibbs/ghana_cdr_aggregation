@@ -21,7 +21,9 @@ mobility_modelling: \
 	${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model.rds \
 	${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds \
 	${PWD}/output/tables/mobility_model_comparison.csv \
-	${PWD}/output/figures/movement_raster_comparison.png
+	${PWD}/output/figures/movement_raster_comparison_gravity_power.png \
+	${PWD}/output/figures/movement_raster_comparison_gravity_exp.png \
+	${PWD}/output/figures/movement_raster_comparison_radiation_basic.png
 
 epi_modelling_figures: \
 	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
@@ -122,7 +124,7 @@ ${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds: ${PWD}/src/
 
 ########## MOBILITY MODEL EVALUATION ##########
 
-${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_mobility_models.R \
+${PWD}/output/figures/movement_raster_comparison_gravity_power.png: ${PWD}/src/evaluate_mobility_models.R \
 		${PWD}/data/population/population_admin2.csv \
 		${PWD}/data/distance/distance_matrix_admin2.rds \
 		${PWD}/data/networks/all_pairs_admin2.csv \
@@ -132,6 +134,39 @@ ${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_mobili
 		${PWD}/data/mobility_modelling/gravity_power/all_pairs_model_predictions.rds \
 		${PWD}/data/mobility_modelling/gravity_power/sequential_model_predictions.rds \
 		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,500,1000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/movement_raster_comparison_gravity_exp.png: ${PWD}/src/evaluate_mobility_models.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/distance/distance_matrix_admin2.rds \
+		${PWD}/data/networks/all_pairs_admin2.csv \
+		${PWD}/data/networks/sequential_admin2.csv \
+		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/sequential_model.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model_predictions.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/sequential_model_predictions.rds \
+		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,500,1000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="-100,-10,0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="0" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/movement_raster_comparison_radiation_basic.png: ${PWD}/src/evaluate_mobility_models.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/distance/distance_matrix_admin2.rds \
+		${PWD}/data/networks/all_pairs_admin2.csv \
+		${PWD}/data/networks/sequential_admin2.csv \
+		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model_predictions.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/sequential_model_predictions.rds \
+		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,1000,10000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="-5,0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/tables/mobility_model_comparison.csv: ${PWD}/src/compare_mobility_models.R \

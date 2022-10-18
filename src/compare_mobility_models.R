@@ -80,3 +80,27 @@ p <- cowplot::plot_grid(p_all_pairs, p_sequential, nrow=1)
 ggsave("output/figures/mobility_model_comparison.png",
        p, width=10, height=5, units="in")
 
+
+
+# Assessing model convergence
+
+get_named_model_summary <- function(model, mobility_network_type){
+  model_summary <- mobility::summary(model)
+  model_summary$model <- model$model
+  model_summary$type <- model$type
+  model_summary$mobility_network_type <- mobility_network_type
+  return (model_summary)
+}
+
+model_summaries_all_pairs <- lapply(all_pairs_models[1:3], get_named_model_summary, "all_pairs")
+model_summaries_sequential <- lapply(sequential_models[1:3], get_named_model_summary, "sequential")
+model_summaries <- do.call(rbind, c(model_summaries_all_pairs, model_summaries_sequential))
+
+# RSTAN defines convergence threshold as 1.05
+# STATA documentation defines convergence threshold as 1.2
+model_summaries %>% 
+  mutate(converged = Rhat <= 1.2) %>% 
+  group_by(mobility_network_type, model, type) %>% 
+  summarise(at_least_one_parameter_not_converged = FALSE %in% converged)
+
+write_csv(model_summaries, gsub("_comparison", "_parameters", tail(.args, 1)))

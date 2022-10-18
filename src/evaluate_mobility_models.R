@@ -9,26 +9,32 @@ if(interactive()){
               "data/distance/distance_matrix_admin2.rds",
               "data/networks/all_pairs_admin2.csv",
               "data/networks/sequential_admin2.csv",
-              "output/gravity_modelling/all_pairs_model.rds",
-              "output/gravity_modelling/sequential_model.rds",
-              "output/gravity_modelling/all_pairs_model_predictions.rds",
-              "output/gravity_modelling/sequential_model_predictions.rds",
+              "data/mobility_modelling/gravity_power/all_pairs_model.rds",
+              "data/mobility_modelling/gravity_power/sequential_model.rds",
+              "data/mobility_modelling/gravity_power/all_pairs_model_predictions.rds",
+              "data/mobility_modelling/gravity_power/sequential_model_predictions.rds",
+              "data/geo/admin2.geojson",
               "output/figures/movement_raster_comparison.png")
 } else {
   .args <- commandArgs(trailingOnly = T)
 }
 
-population <- read_csv(.args[1])
+population <- read_csv(.args[1], col_types = cols())
 distance_matrix <- read_rds(.args[2])
 
-all_pairs <- read_csv(.args[3]) 
-sequential <- read_csv(.args[4])
+all_pairs <- read_csv(.args[3], col_types = cols()) 
+sequential <- read_csv(.args[4], col_types = cols())
 
 all_pairs_model <- read_rds(.args[5])
 sequential_model <- read_rds(.args[6])
 
 all_pairs_prediction <- read_rds(.args[7])
 sequential_prediction <- read_rds(.args[8])
+
+a2 <- st_read(.args[9]) %>% 
+  mutate(geometry = st_make_valid(geometry)) %>% 
+  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
+  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
 
 metric <- rownames(summary(all_pairs_model)[1,] %>% t())
 
@@ -73,12 +79,6 @@ get_model_summary_difference(all_pairs_model$summary, sequential_model$summary)
 
 ######
 # Plot gravity model comparison
-
-a2 <- st_read("data/geo/admin2.geojson") %>% 
-  mutate(geometry = st_make_valid(geometry)) %>% 
-  # slice(1) %>% 
-  st_simplify(preserveTopology = T, dTolerance = 100) %>% 
-  mutate(area = as.numeric(units::set_units(st_area(geometry), "km^2")))
 
 a2_lat_long <- a2 %>% select(-centroid, -area) %>% 
   st_centroid() %>% 
@@ -151,33 +151,63 @@ plot_raster_network <- function(network, fill_scale, name_levels,
   
 }
 
-plot_network_distance_kernel <- function(network, distance_matrix, title=NULL){
+plot_network_distance_kernel <- function(network, 
+                                         distance_matrix, 
+                                         xlimits=NULL, 
+                                         ylimits=NULL, 
+                                         title=NULL){
   
   journey_distances <- distance_matrix[cbind(network$pcod_from, network$pcod_to)]
   network$distance <- journey_distances
+  
   return (
     network %>% 
-      ggplot() + 
-      geom_jitter(aes(x = distance, y = value), size=0.01) + 
-      scale_y_continuous(trans="log10", labels = scales::comma) + 
-      scale_x_continuous(trans="log10") + 
+      ggplot(aes(x = distance, y = value)) + 
+      geom_jitter(size=0.01) + 
+      scale_y_continuous(trans="log10", labels = scales::comma, limits = ylimits) +
+      scale_x_continuous(trans="log10", limits = xlimits) +
       theme_classic() + 
       labs(x="Distance (km)", y = "Travellers", title=title) 
   )
 }
 
+plot_smooth_line_and_equation <- function(){
+  return(
+    list(geom_smooth(method="lm", level=0.90, size=0.3),
+         ggpubr::stat_regline_equation(label.x.npc = 0.6, label.y.npc = 1, size=3),
+         ggpubr::stat_cor(aes(label = ..r.label..), label.x.npc = 0.6, label.y.npc = 0.9, size=3))
+  )
+}
+
+distance_kernel_ylim <- c(min(c(all_pairs$value_mean, sequential$value_mean, all_pairs_prediction$value, sequential_prediction$value)),
+                          max(c(all_pairs$value_mean, sequential$value_mean, all_pairs_prediction$value, sequential_prediction$value)))
+
+distance_kernel_xlim <- c(1, max(distance_matrix))
+
 p_all_pairs_kernel <- plot_network_distance_kernel(all_pairs %>% rename(value=value_mean), 
                                                    distance_matrix,
-                                                   title="All Pairs (Empirical)")
+                                                   ylimits = distance_kernel_ylim,
+                                                   xlimits = distance_kernel_xlim,
+                                                   title="All Pairs (Empirical)") + 
+  plot_smooth_line_and_equation() 
 p_sequential_kernel <- plot_network_distance_kernel(sequential %>% rename(value=value_mean), 
                                                     distance_matrix,
-                                                    title="Sequential (Empirical)")
+                                                    ylimits = distance_kernel_ylim,
+                                                    xlimits = distance_kernel_xlim,
+                                                    title="Sequential (Empirical)") + 
+  plot_smooth_line_and_equation() 
 p_all_pairs_prediction_kernel <- plot_network_distance_kernel(all_pairs_prediction, 
                                                               distance_matrix,
-                                                              title="All Pairs (Modelled)")
+                                                              ylimits = distance_kernel_ylim,
+                                                              xlimits = distance_kernel_xlim,
+                                                              title="All Pairs (Modelled)") + 
+  plot_smooth_line_and_equation() 
 p_sequential_prediction_kernel <- plot_network_distance_kernel(sequential_prediction, 
                                                               distance_matrix,
-                                                              title="Sequential (Modelled)")
+                                                              ylimits = distance_kernel_ylim,
+                                                              xlimits = distance_kernel_xlim,
+                                                              title="Sequential (Modelled)") + 
+  plot_smooth_line_and_equation() 
 
 p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean), fill_scale=fill_scale, 
                                    name_levels=name_levels,
@@ -296,21 +326,35 @@ p_raster_difference_prediction <- plot_raster_network_difference(prediction_diff
                                name_levels,
                                "Difference (Modelled)")
 
-plot_network_distance_kernel_difference <- function(network, distance_matrix, title){
+plot_network_distance_kernel_difference <- function(network, 
+                                                    distance_matrix, 
+                                                    xlimits=NULL, 
+                                                    ylimits=NULL, 
+                                                    title){
   return(
     plot_network_distance_kernel(network=network, distance_matrix=distance_matrix, 
+                                 xlimits=xlimits,
+                                 ylimits=ylimits,
                                  title=title) + 
-      scale_y_continuous() + labs(y = "Difference (%)") + 
+      scale_y_continuous(limits = ylimits) + labs(y = "Difference (%)") + 
       geom_hline(yintercept = 0, color="red", linetype="dashed", size=0.2)
   )
 }
 
+perc_difference <- c(empirical_difference$perc_difference, prediction_difference$perc_difference)
+
+difference_ylim <- c(min(perc_difference), max(perc_difference))
+
 p_kernel_difference_empirical <- plot_network_distance_kernel_difference(empirical_difference %>% select(-value) %>% rename(value=perc_difference), 
                                                                distance_matrix,
+                                                               ylimits = difference_ylim,
+                                                               xlimits = distance_kernel_xlim,
                                                                title="Difference (Empirical)")
 
 p_kernel_difference_prediction <- plot_network_distance_kernel_difference(prediction_difference %>% select(-value) %>% rename(value=perc_difference), 
                                                                distance_matrix,
+                                                               ylimits = difference_ylim,
+                                                               xlimits = distance_kernel_xlim,
                                                                title="Difference (Modelled)")
 
 titles <- lapply(c("a", "b", "c", "d"), function(x){

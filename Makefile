@@ -5,7 +5,7 @@ R_INTERPRETER = /usr/local/bin/Rscript
 
 default: \
 	${PWD}/output/figures/movement_raster_comparison.png \
-	${PWD}/output/figures/modelled_trajectory.png \
+	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
 	${PWD}/output/figures/cell_sites_per_district.png \
 	${PWD}/output/figures/figure_1.png \
 	data_cleaning \
@@ -22,6 +22,11 @@ mobility_modelling: \
 	${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds \
 	${PWD}/output/tables/mobility_model_comparison.csv \
 	${PWD}/output/figures/movement_raster_comparison.png
+
+epi_modelling_figures: \
+	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
+	${PWD}/output/figures/gravity_power_modelled_trajectory.png \
+	${PWD}/output/figures/radiation_basic_modelled_trajectory.png
 
 epi_modelling_results: \
 	${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv \
@@ -235,16 +240,30 @@ ${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv: ${PWD}
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
-${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_modelled_epidemic_peak.R \
-		${PWD}/data/geo/pcods_admin2.csv \
-		${PWD}/data/population/population_admin2.csv \
-		${PWD}/data/epi_modelling/results/focus_locs/epi_model_results_focus_locs.csv
-	$(R_INTERPRETER) $^ $@
+#${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_modelled_epidemic_peak.R \
+#		${PWD}/data/geo/pcods_admin2.csv \
+#		${PWD}/data/population/population_admin2.csv \
+#		${PWD}/data/epi_modelling/results/focus_locs/epi_model_results_focus_locs.csv
+#	$(R_INTERPRETER) $^ $@
 
-${PWD}/output/figures/modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
+${PWD}/output/figures/gravity_exp_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
 		${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv
+		export MOBILITY_MODEL_TITLE="Gravity Model (Exponential)" && \
 	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/gravity_power_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
+		${PWD}/data/geo/pcods_admin2.csv \
+		${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results_national.csv
+		export MOBILITY_MODEL_TITLE="Gravity Model (Power)" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/radiation_basic_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
+		${PWD}/data/geo/pcods_admin2.csv \
+		${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv
+		export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
+	$(R_INTERPRETER) $^ $@
+
 
 ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \
 		${PWD}/data/cell_sites/cell_sites_admin2.csv \

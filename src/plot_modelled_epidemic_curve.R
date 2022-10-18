@@ -10,8 +10,10 @@ if (interactive()){
     "data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv",
     "output/figures/gravity_exp_modelled_trajectory.png"
   )
+  MOBILITY_MODEL_TITLE <- "Gravity Model (Exponential)"
 } else {
   .args <- commandArgs(trailingOnly = T)
+  MOBILITY_MODEL_TITLE <- Sys.getenv("MOBILITY_MODEL_TITLE")
 }
 
 pcods_a2 <- read.csv(.args[1], header = F, col.names = c("pcod", "name2"))
@@ -58,18 +60,35 @@ ggsave(tail(.args, 1),
        p_time_series,
        width=10, height=5.5, units="in")  
 
-median_peaks <- trajectories_density %>% 
-  group_by(mobility_network_type, R0, introduction_location) %>% 
-  top_n(1, wt=med)
+peaks <- trajectories_named %>% 
+  group_by(mobility_network_type, R0, introduction_location, sample) %>% 
+  top_n(1, wt=I)
 
-median_peaks %>% 
-  select(time, mobility_network_type, R0, introduction_location) %>% 
+peaks_by_network <- peaks %>% 
+  group_by(mobility_network_type, R0, introduction_location) %>% 
+  summarise(median_time = median(time),
+         median_I = median(I),
+         .groups="drop")
+
+peak_by_network_difference <- peaks_by_network %>% 
   pivot_wider(names_from = mobility_network_type, 
-              values_from = time) %>% 
-  mutate(difference = sequential - all_pairs) %>% 
+              values_from = !c(R0, mobility_network_type, introduction_location)) %>% 
+  mutate(median_time_difference = median_time_sequential - median_time_all_pairs,
+         median_I_difference = median_I_sequential - median_I_all_pairs)
+  
+p_difference <- peak_by_network_difference %>% 
+  select(R0, introduction_location, median_time_difference, median_I_difference) %>% 
+  pivot_longer(!c(R0, introduction_location)) %>% 
+  mutate(name = factor(name, levels = c("median_time_difference", "median_I_difference"),
+                       labels = c("Timing of epidemic peak", "Peak number of infections"))) %>%  
   ggplot() + 
-  geom_bar(aes(x = R0, y = difference), stat="identity") + 
-  facet_grid(~introduction_location) + 
-  labs(y = "Infection peak timing delay ('Sequential' compared to 'All Pairs')") + 
+  geom_bar(aes(x = R0, y = value), stat="identity") + 
+  facet_grid(name ~ introduction_location, scales="free_y") + 
+  labs(y = "Median difference between networks",
+       title = MOBILITY_MODEL_TITLE,
+       x = NULL) + 
   theme_classic()
- 
+
+ggsave(gsub("modelled_trajectory.png", "peak_difference.png", tail(.args, 1)),
+       p_difference,
+       width=10, height=5.5, units="in")

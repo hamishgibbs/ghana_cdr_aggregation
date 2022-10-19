@@ -50,7 +50,7 @@ sum_network_edges <- function(network){
   return(
     network %>% 
       group_by(pcod_from, pcod_to) %>% 
-      summarise(value_sum = sum(value), .groups="drop")
+      summarise(value_mean = mean(value), .groups="drop")
   )
 }
 
@@ -58,7 +58,7 @@ network_to_graph <- function(network){
   network_data <- sum_network_edges(network) %>% 
     rename(from = pcod_from,
            to = pcod_to,
-           weight = value_sum)
+           weight = value_mean)
   return(graph_from_data_frame(network_data))
 }
 get_network_edge_density <- function(network){
@@ -86,17 +86,27 @@ get_percentage_difference <- function(a, b){
   )
 }
 
-all_pairs_edges <- get_edge_number(all_pairs)
-sequential_edges <- get_edge_number(sequential)
+daily_average_all_pairs <- all_pairs %>% 
+  group_by(pcod_from, pcod_to) %>% 
+  summarise(value=mean(value, na.rm=T), 
+            .groups="drop")
 
-all_pairs_trips <- get_trip_number(all_pairs)
-sequential_trips <- get_trip_number(sequential)
+daily_average_sequential <- sequential %>% 
+  group_by(pcod_from, pcod_to) %>% 
+  summarise(value=mean(value, na.rm=T), 
+            .groups="drop")
 
-all_pairs_mean_degree <- get_network_mean_degree(all_pairs)
-sequential_mean_degree <- get_network_mean_degree(sequential)
+all_pairs_edges <- get_edge_number(daily_average_all_pairs)
+sequential_edges <- get_edge_number(daily_average_sequential)
 
-all_pairs_density <- get_network_edge_density(all_pairs)
-sequential_density <- get_network_edge_density(sequential)
+all_pairs_trips <- get_trip_number(daily_average_all_pairs)
+sequential_trips <- get_trip_number(daily_average_sequential)
+
+all_pairs_mean_degree <- get_network_mean_degree(daily_average_all_pairs)
+sequential_mean_degree <- get_network_mean_degree(daily_average_sequential)
+
+all_pairs_density <- get_network_edge_density(daily_average_all_pairs)
+sequential_density <- get_network_edge_density(daily_average_sequential)
 
 all_pairs_weighted_mean_distance <- get_network_weighted_mean_distance(all_pairs)
 sequential_weighted_mean_distance <- get_network_weighted_mean_distance(sequential)

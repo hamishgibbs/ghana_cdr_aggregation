@@ -12,29 +12,27 @@ if (interactive()){
   .args <- commandArgs(trailingOnly = T)
 }
 
-trajectories <- list()
+trajectories_national <- list()
 
 trajectory_indices <- c(1:(length(.args) -1))
 
 for (i in 1:length(trajectory_indices)){
-  trajectories[[i]] <- read_rds(.args[trajectory_indices[i]]) %>%
-    select(node, time, I, mobility_network_type, R0, introduction_location, sample)
+  trajectories_national[[i]] <- read_rds(.args[trajectory_indices[i]]) %>% 
+    select(node, time, I, mobility_network_type, R0, introduction_location, sample) %>% 
+    group_by(time, mobility_network_type, R0, introduction_location, sample) %>% 
+    summarise(I = sum(I, na.rm = T), .groups="drop")
+  
   print(paste0("Progress (reading): ", scales::percent(i / length(trajectory_indices))))
 }
 
-trajectories <- do.call(rbind, trajectories)
-
-write_csv(trajectories, tail(.args, 1))
-
-national_trajectories <- trajectories %>% 
-  group_by(time, mobility_network_type, R0, introduction_location, sample) %>% 
-  summarise(I = sum(I), .groups="drop")
+trajectories_national <- do.call(rbind, trajectories_national)
   
-write_csv(national_trajectories, gsub(".csv", "_national.csv", tail(.args, 1)))
+write_csv(trajectories_national, tail(.args, 1))
 
-trajectory_peaks <- national_trajectories %>%
+# Note that some epidemics do not finish by the time the end of the model training is reached
+trajectory_peaks <- trajectories_national %>%
   group_by(mobility_network_type, R0, introduction_location, sample) %>% 
   top_n(1, wt=I)
 
-write_csv(trajectory_peaks, gsub(".csv", "_national_peaks.csv", tail(.args, 1)))
+write_csv(trajectory_peaks, gsub(".csv", "_peaks.csv", tail(.args, 1)))
 

@@ -72,8 +72,10 @@ sequential_prediction <- matrix_to_long_df_to_plot(sequential_prediction)
 
 print(paste("Number of edges (all_pairs):", scales::comma(length(all_pairs_prediction$value))))
 print(paste("Number of edges (sequential):", scales::comma(length(sequential_prediction$value))))
+print(paste("Difference edges:", scales::percent((length(all_pairs_prediction$value) - length(sequential_prediction$value))/length(all_pairs_prediction$value))))
 print(paste("Number of trips (all_pairs):", scales::comma(sum(all_pairs_prediction$value))))
 print(paste("Number of trips (sequential):", scales::comma(sum(sequential_prediction$value))))
+print(paste("Difference trips:", scales::percent((sum(all_pairs_prediction$value) - sum(sequential_prediction$value))/sum(all_pairs_prediction$value))))
 
 # Total number of daily trips in each network
 all_pairs %>%

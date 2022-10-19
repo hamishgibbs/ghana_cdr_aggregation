@@ -77,7 +77,7 @@ get_network_weighted_mean_distance <- function(network){
                 st_drop_geometry(),
               by=c("pcod_from", "pcod_to"))
   
-  return(weighted.mean(distance_assigned$len_km, distance_assigned$value_sum))
+  return(weighted.mean(distance_assigned$len_km, distance_assigned$value_mean))
 }
 
 get_percentage_difference <- function(a, b){
@@ -113,15 +113,16 @@ sequential_weighted_mean_distance <- get_network_weighted_mean_distance(sequenti
 
 total_trips_from_origin <- function(network, type){
   return (network %>% 
+    group_by(pcod_from, pcod_to) %>% 
+    summarise(value = sum(value, na.rm = T), .groups="drop") %>% 
     group_by(pcod_from) %>% 
-    summarise(value = sum(value)) %>% 
+    summarise(value = mean(value), .groups="drop") %>% 
     left_join(area, by = c("pcod_from" = "pcod2")) %>% 
     left_join(population, by = c("pcod_from" = "pcod2")) %>% 
     left_join(cell_sites, by = c("pcod_from" = "pcod2")) %>% 
     mutate(type = type))
 }
 
-# TODO: CLEAN THIS UP. REMOVE DUPLICATION.
 ds <- total_trips_from_origin(sequential, type="Sequential") 
 da <- total_trips_from_origin(all_pairs, type="All Pairs")
 
@@ -156,8 +157,8 @@ p_trips_cell_sites <- rbind(ds, da) %>%
 combined_networks <- rbind(sum_network_edges(all_pairs), sum_network_edges(sequential))
 
 size_scale <- scale_size_continuous(range=c(0.01,1), 
-                      limits = c(min(combined_networks$value_sum), 
-                                 max(combined_networks$value_sum)))
+                      limits = c(min(combined_networks$value_mean), 
+                                 max(combined_networks$value_mean)))
 
 plot_network <- function(network, size_scale, a2){
   return (network %>% 
@@ -165,7 +166,7 @@ plot_network <- function(network, size_scale, a2){
             st_as_sf() %>% 
             ggplot() + 
             geom_sf(data=a2, color="black", fill="white", size=0.2) +
-            geom_sf(aes(size = value_sum)) + 
+            geom_sf(aes(size = value_mean)) + 
             size_scale +
             theme_void() + 
             theme(legend.position = "none",

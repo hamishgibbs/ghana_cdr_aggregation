@@ -4,7 +4,6 @@ R_INTERPRETER = /usr/local/bin/Rscript
 .PHONY: default
 
 default: \
-	${PWD}/output/figures/movement_raster_comparison.png \
 	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
 	${PWD}/output/figures/cell_sites_per_district.png \
 	${PWD}/output/figures/figure_1.png \

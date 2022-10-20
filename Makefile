@@ -4,7 +4,6 @@ R_INTERPRETER = /usr/local/bin/Rscript
 .PHONY: default
 
 default: \
-	${PWD}/output/figures/movement_raster_comparison.png \
 	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
 	${PWD}/output/figures/cell_sites_per_district.png \
 	${PWD}/output/figures/figure_1.png \
@@ -21,17 +20,25 @@ mobility_modelling: \
 	${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model.rds \
 	${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds \
 	${PWD}/output/tables/mobility_model_comparison.csv \
-	${PWD}/output/figures/movement_raster_comparison.png
+	${PWD}/output/figures/movement_raster_comparison_gravity_power.png \
+	${PWD}/output/figures/movement_raster_comparison_gravity_exp.png \
+	${PWD}/output/figures/movement_raster_comparison_radiation_basic.png
 
 epi_modelling_figures: \
 	${PWD}/output/figures/gravity_exp_modelled_trajectory.png \
 	${PWD}/output/figures/gravity_power_modelled_trajectory.png \
-	${PWD}/output/figures/radiation_basic_modelled_trajectory.png
+	${PWD}/output/figures/radiation_basic_modelled_trajectory.png \
+	${PWD}/output/figures/gravity_power_time_delay_all_locs.png \
+	${PWD}/output/figures/gravity_exp_time_delay_all_locs.png \
+	${PWD}/output/figures/radiation_basic_time_delay_all_locs.png
 
 epi_modelling_results: \
-	${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv \
-	${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results.csv \
-	${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv
+	${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv \
+	${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results_national.csv \
+	${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv \
+	${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national.csv \
+	${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national.csv \
+	${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national.csv
 
 epi_modelling: \
 	epi_modelling_data_preparation \
@@ -122,7 +129,7 @@ ${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds: ${PWD}/src/
 
 ########## MOBILITY MODEL EVALUATION ##########
 
-${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_mobility_models.R \
+${PWD}/output/figures/movement_raster_comparison_gravity_power.png: ${PWD}/src/evaluate_mobility_models.R \
 		${PWD}/data/population/population_admin2.csv \
 		${PWD}/data/distance/distance_matrix_admin2.rds \
 		${PWD}/data/networks/all_pairs_admin2.csv \
@@ -132,6 +139,39 @@ ${PWD}/output/figures/movement_raster_comparison.png: ${PWD}/src/evaluate_mobili
 		${PWD}/data/mobility_modelling/gravity_power/all_pairs_model_predictions.rds \
 		${PWD}/data/mobility_modelling/gravity_power/sequential_model_predictions.rds \
 		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,500,1000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/movement_raster_comparison_gravity_exp.png: ${PWD}/src/evaluate_mobility_models.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/distance/distance_matrix_admin2.rds \
+		${PWD}/data/networks/all_pairs_admin2.csv \
+		${PWD}/data/networks/sequential_admin2.csv \
+		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/sequential_model.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model_predictions.rds \
+		${PWD}/data/mobility_modelling/gravity_exp/sequential_model_predictions.rds \
+		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,500,1000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="-100,-10,0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="0" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/movement_raster_comparison_radiation_basic.png: ${PWD}/src/evaluate_mobility_models.R \
+		${PWD}/data/population/population_admin2.csv \
+		${PWD}/data/distance/distance_matrix_admin2.rds \
+		${PWD}/data/networks/all_pairs_admin2.csv \
+		${PWD}/data/networks/sequential_admin2.csv \
+		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model_predictions.rds \
+		${PWD}/data/mobility_modelling/radiation_basic/sequential_model_predictions.rds \
+		${PWD}/data/geo/admin2.geojson
+	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,1000,10000" && \
+	export DIFFERENCE_YAXIS_SCALE_BREAKS="-5,0,10,100,1000,10000" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/tables/mobility_model_comparison.csv: ${PWD}/src/compare_mobility_models.R \
@@ -215,8 +255,8 @@ ${PWD}/data/epi_modelling/results/DONE_ALL_LOCS.rds: ${PWD}/src/run_seir_model.R
 
 ########## EPI MODEL EVALUATION ##########
 
-# combine focus and all locs separately
-${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+# combine national results for focus locs
+${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid029*.rds \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid146*.rds \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid164*.rds \
@@ -224,7 +264,7 @@ ${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results.csv: ${PWD}/src
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
-${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid029*.rds \
 		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid146*.rds \
 		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid164*.rds \
@@ -232,7 +272,7 @@ ${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results.csv: ${PWD}/s
 		${PWD}/data/epi_modelling/results/gravity_power/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
-${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv: ${PWD}/src/combine_epi_model_results.R \
+${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid029*.rds \
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid146*.rds \
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid164*.rds \
@@ -240,6 +280,18 @@ ${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv: ${PWD}
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
+# combine national results for focus locs
+${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/gravity_exp/**/**/*_trajectory_1.rds
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/gravity_power/**/**/*_trajectory_1.rds
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
+		${PWD}/data/epi_modelling/results/radiation_basic/**/**/*_trajectory_1.rds
+	$(R_INTERPRETER) $^ $@
 #${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_modelled_epidemic_peak.R \
 #		${PWD}/data/geo/pcods_admin2.csv \
 #		${PWD}/data/population/population_admin2.csv \
@@ -249,21 +301,43 @@ ${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results.csv: ${PWD}
 ${PWD}/output/figures/gravity_exp_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
 		${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv
-		export MOBILITY_MODEL_TITLE="Gravity Model (Exponential)" && \
+	export MOBILITY_MODEL_TITLE="Gravity Model (Exponential)" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/gravity_power_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
 		${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results_national.csv
-		export MOBILITY_MODEL_TITLE="Gravity Model (Power)" && \
+	export MOBILITY_MODEL_TITLE="Gravity Model (Power)" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/radiation_basic_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
 		${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv
-		export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
+	export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
 	$(R_INTERPRETER) $^ $@
 
+# Plot time difference for all introduction locations
+
+${PWD}/output/figures/gravity_exp_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
+		${PWD}/data/geo/admin2.geojson \
+		${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national_peaks.csv
+	export MOBILITY_MODEL_TITLE="Gravity Model (Exponential)" && \
+	export TIME_DIFFERENCE_COLOR_BREAKS="-500,-200,-100,-50,0,50,100" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/gravity_power_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
+		${PWD}/data/geo/admin2.geojson \
+		${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national_peaks.csv
+	export MOBILITY_MODEL_TITLE="Gravity Model (Power)" && \
+	export TIME_DIFFERENCE_COLOR_BREAKS="-150,-50,-10,0,10,50,150" && \
+	$(R_INTERPRETER) $^ $@
+
+${PWD}/output/figures/radiation_basic_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
+		${PWD}/data/geo/admin2.geojson \
+		${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national_peaks.csv
+	export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
+	export TIME_DIFFERENCE_COLOR_BREAKS="-250,-100,-50,-20,-10,0,10,50,100" && \
+	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \
 		${PWD}/data/cell_sites/cell_sites_admin2.csv \

@@ -50,45 +50,15 @@ p_time_series <- trajectories_density %>%
   facet_grid(R0 ~ introduction_location, scales="free") + 
   scale_y_continuous(labels = scales::comma) + 
   theme_classic() + 
-  theme(legend.position = "none",
+  theme(legend.position = "right",
         strip.background = element_blank()) + 
-  labs(y = "Number of infections", x = "Time") + 
-  mobility_type_color_scale + 
+  labs(y = "Number of infections", x = "Time",
+       title = MOBILITY_MODEL_TITLE,
+       fill = "Aggregation\nMethodology") + 
+  mobility_type_color_scale_no_legend + 
   mobility_type_fill_scale
 
 ggsave(tail(.args, 1),
        p_time_series,
        width=10, height=5.5, units="in")  
 
-peaks <- trajectories_named %>% 
-  group_by(mobility_network_type, R0, introduction_location, sample) %>% 
-  top_n(1, wt=I)
-
-peaks_by_network <- peaks %>% 
-  group_by(mobility_network_type, R0, introduction_location) %>% 
-  summarise(median_time = median(time),
-         median_I = median(I),
-         .groups="drop")
-
-peak_by_network_difference <- peaks_by_network %>% 
-  pivot_wider(names_from = mobility_network_type, 
-              values_from = !c(R0, mobility_network_type, introduction_location)) %>% 
-  mutate(median_time_difference = median_time_sequential - median_time_all_pairs,
-         median_I_difference = median_I_sequential - median_I_all_pairs)
-  
-p_difference <- peak_by_network_difference %>% 
-  select(R0, introduction_location, median_time_difference, median_I_difference) %>% 
-  pivot_longer(!c(R0, introduction_location)) %>% 
-  mutate(name = factor(name, levels = c("median_time_difference", "median_I_difference"),
-                       labels = c("Timing of epidemic peak", "Peak number of infections"))) %>%  
-  ggplot() + 
-  geom_bar(aes(x = R0, y = value), stat="identity") + 
-  facet_grid(name ~ introduction_location, scales="free_y") + 
-  labs(y = "Median difference between networks",
-       title = MOBILITY_MODEL_TITLE,
-       x = NULL) + 
-  theme_classic()
-
-ggsave(gsub("modelled_trajectory.png", "peak_difference.png", tail(.args, 1)),
-       p_difference,
-       width=10, height=5.5, units="in")

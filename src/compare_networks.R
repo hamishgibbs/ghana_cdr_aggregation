@@ -50,7 +50,7 @@ sum_network_edges <- function(network){
   return(
     network %>% 
       group_by(pcod_from, pcod_to) %>% 
-      summarise(value_sum = sum(value), .groups="drop")
+      summarise(value_mean = mean(value), .groups="drop")
   )
 }
 
@@ -58,7 +58,7 @@ network_to_graph <- function(network){
   network_data <- sum_network_edges(network) %>% 
     rename(from = pcod_from,
            to = pcod_to,
-           weight = value_sum)
+           weight = value_mean)
   return(graph_from_data_frame(network_data))
 }
 get_network_edge_density <- function(network){
@@ -77,7 +77,7 @@ get_network_weighted_mean_distance <- function(network){
                 st_drop_geometry(),
               by=c("pcod_from", "pcod_to"))
   
-  return(weighted.mean(distance_assigned$len_km, distance_assigned$value_sum))
+  return(weighted.mean(distance_assigned$len_km, distance_assigned$value_mean))
 }
 
 get_percentage_difference <- function(a, b){
@@ -86,32 +86,43 @@ get_percentage_difference <- function(a, b){
   )
 }
 
-all_pairs_edges <- get_edge_number(all_pairs)
-sequential_edges <- get_edge_number(sequential)
+daily_average_all_pairs <- all_pairs %>% 
+  group_by(pcod_from, pcod_to) %>% 
+  summarise(value=mean(value, na.rm=T), 
+            .groups="drop")
 
-all_pairs_trips <- get_trip_number(all_pairs)
-sequential_trips <- get_trip_number(sequential)
+daily_average_sequential <- sequential %>% 
+  group_by(pcod_from, pcod_to) %>% 
+  summarise(value=mean(value, na.rm=T), 
+            .groups="drop")
 
-all_pairs_mean_degree <- get_network_mean_degree(all_pairs)
-sequential_mean_degree <- get_network_mean_degree(sequential)
+all_pairs_edges <- get_edge_number(daily_average_all_pairs)
+sequential_edges <- get_edge_number(daily_average_sequential)
 
-all_pairs_density <- get_network_edge_density(all_pairs)
-sequential_density <- get_network_edge_density(sequential)
+all_pairs_trips <- get_trip_number(daily_average_all_pairs)
+sequential_trips <- get_trip_number(daily_average_sequential)
+
+all_pairs_mean_degree <- get_network_mean_degree(daily_average_all_pairs)
+sequential_mean_degree <- get_network_mean_degree(daily_average_sequential)
+
+all_pairs_density <- get_network_edge_density(daily_average_all_pairs)
+sequential_density <- get_network_edge_density(daily_average_sequential)
 
 all_pairs_weighted_mean_distance <- get_network_weighted_mean_distance(all_pairs)
 sequential_weighted_mean_distance <- get_network_weighted_mean_distance(sequential)
 
 total_trips_from_origin <- function(network, type){
   return (network %>% 
+    group_by(pcod_from, pcod_to) %>% 
+    summarise(value = sum(value, na.rm = T), .groups="drop") %>% 
     group_by(pcod_from) %>% 
-    summarise(value = sum(value)) %>% 
+    summarise(value = mean(value), .groups="drop") %>% 
     left_join(area, by = c("pcod_from" = "pcod2")) %>% 
     left_join(population, by = c("pcod_from" = "pcod2")) %>% 
     left_join(cell_sites, by = c("pcod_from" = "pcod2")) %>% 
     mutate(type = type))
 }
 
-# TODO: CLEAN THIS UP. REMOVE DUPLICATION.
 ds <- total_trips_from_origin(sequential, type="Sequential") 
 da <- total_trips_from_origin(all_pairs, type="All Pairs")
 
@@ -146,8 +157,8 @@ p_trips_cell_sites <- rbind(ds, da) %>%
 combined_networks <- rbind(sum_network_edges(all_pairs), sum_network_edges(sequential))
 
 size_scale <- scale_size_continuous(range=c(0.01,1), 
-                      limits = c(min(combined_networks$value_sum), 
-                                 max(combined_networks$value_sum)))
+                      limits = c(min(combined_networks$value_mean), 
+                                 max(combined_networks$value_mean)))
 
 plot_network <- function(network, size_scale, a2){
   return (network %>% 
@@ -155,7 +166,7 @@ plot_network <- function(network, size_scale, a2){
             st_as_sf() %>% 
             ggplot() + 
             geom_sf(data=a2, color="black", fill="white", size=0.2) +
-            geom_sf(aes(size = value_sum)) + 
+            geom_sf(aes(size = value_mean)) + 
             size_scale +
             theme_void() + 
             theme(legend.position = "none",

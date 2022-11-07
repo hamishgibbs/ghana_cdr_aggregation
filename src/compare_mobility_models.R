@@ -3,11 +3,9 @@ suppressPackageStartupMessages({
 })
 
 if(interactive()){
-  .args <-  c("data/mobility_modelling/gravity_basic/all_pairs_model.rds",
-              "data/mobility_modelling/gravity_exp/all_pairs_model.rds",
+  .args <-  c("data/mobility_modelling/gravity_exp/all_pairs_model.rds",
               "data/mobility_modelling/gravity_power/all_pairs_model.rds",
               "data/mobility_modelling/radiation_basic/all_pairs_model.rds",
-              "data/mobility_modelling/gravity_basic/sequential_model.rds",
               "data/mobility_modelling/gravity_exp/sequential_model.rds",
               "data/mobility_modelling/gravity_power/sequential_model.rds",
               "data/mobility_modelling/radiation_basic/sequential_model.rds",
@@ -16,12 +14,12 @@ if(interactive()){
   .args <- commandArgs(trailingOnly = T)
 }
 
-all_pairs_models <- lapply(.args[1:4], read_rds)
-sequential_models <- lapply(.args[5:8], read_rds)
+all_pairs_models <- lapply(.args[1:3], read_rds)
+sequential_models <- lapply(.args[4:6], read_rds)
 
 format_comparison_table <- function(models, movement_type){
   model_comparison <- mobility::compare(models)
-  model_comparison$movement_type <- rep(movement_type, 4)
+  model_comparison$movement_type <- rep(movement_type, 3)
   model_comparison$model <- stringr::str_to_title(model_comparison$model)
   model_comparison$type <- stringr::str_to_title(model_comparison$type)
   model_comparison$DIC <- scales::comma(model_comparison$DIC, accuracy=0.01)
@@ -80,8 +78,6 @@ p <- cowplot::plot_grid(p_all_pairs, p_sequential, nrow=1)
 ggsave("output/figures/mobility_model_comparison.png",
        p, width=10, height=5, units="in")
 
-
-
 # Assessing model convergence
 
 get_named_model_summary <- function(model, mobility_network_type){
@@ -92,12 +88,10 @@ get_named_model_summary <- function(model, mobility_network_type){
   return (model_summary)
 }
 
-model_summaries_all_pairs <- lapply(all_pairs_models[1:3], get_named_model_summary, "all_pairs")
-model_summaries_sequential <- lapply(sequential_models[1:3], get_named_model_summary, "sequential")
+model_summaries_all_pairs <- lapply(all_pairs_models[1:2], get_named_model_summary, "all_pairs")
+model_summaries_sequential <- lapply(sequential_models[1:2], get_named_model_summary, "sequential")
 model_summaries <- do.call(rbind, c(model_summaries_all_pairs, model_summaries_sequential))
 
-# RSTAN defines convergence threshold as 1.05
-# STATA documentation defines convergence threshold as 1.2
 model_summaries %>% 
   mutate(converged = Rhat <= 1.2) %>% 
   group_by(mobility_network_type, model, type) %>% 

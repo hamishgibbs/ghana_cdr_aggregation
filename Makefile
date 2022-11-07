@@ -11,8 +11,6 @@ default: \
 	mobility_modelling
 
 mobility_modelling: \
-	${PWD}/data/mobility_modelling/gravity_basic/all_pairs_model.rds \
-	${PWD}/data/mobility_modelling/gravity_basic/sequential_model.rds \
 	${PWD}/data/mobility_modelling/gravity_power/all_pairs_model.rds \
 	${PWD}/data/mobility_modelling/gravity_power/sequential_model.rds \
 	${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model.rds \
@@ -62,22 +60,6 @@ ${PWD}/data/networks/all_pairs_admin2.csv: ${PWD}/src/aggregate_networks.R \
 	$(R_INTERPRETER) $^ $@
 
 ########## MOBILITY MODELLING ##########
-
-${PWD}/data/mobility_modelling/gravity_basic/all_pairs_model.rds: ${PWD}/src/train_mobility_models.R \
-		${PWD}/data/population/population_admin2.csv \
-    ${PWD}/data/distance/distance_matrix_admin2.rds \
-    ${PWD}/data/networks/all_pairs_admin2.csv
-	export MOBILITY_MODEL="gravity" && \
-	export MOBILITY_MODEL_TYPE="basic" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/data/mobility_modelling/gravity_basic/sequential_model.rds: ${PWD}/src/train_mobility_models.R \
-		${PWD}/data/population/population_admin2.csv \
-    ${PWD}/data/distance/distance_matrix_admin2.rds \
-    ${PWD}/data/networks/sequential_admin2.csv
-	export MOBILITY_MODEL="gravity" && \
-	export MOBILITY_MODEL_TYPE="basic" && \
-	$(R_INTERPRETER) $^ $@
 
 ${PWD}/data/mobility_modelling/gravity_power/all_pairs_model.rds: ${PWD}/src/train_mobility_models.R \
 		${PWD}/data/population/population_admin2.csv \
@@ -175,11 +157,9 @@ ${PWD}/output/figures/movement_raster_comparison_radiation_basic.png: ${PWD}/src
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/tables/mobility_model_comparison.csv: ${PWD}/src/compare_mobility_models.R \
-		${PWD}/data/mobility_modelling/gravity_basic/all_pairs_model.rds \
 		${PWD}/data/mobility_modelling/gravity_exp/all_pairs_model.rds \
 		${PWD}/data/mobility_modelling/gravity_power/all_pairs_model.rds \
 		${PWD}/data/mobility_modelling/radiation_basic/all_pairs_model.rds \
-		${PWD}/data/mobility_modelling/gravity_basic/sequential_model.rds \
 		${PWD}/data/mobility_modelling/gravity_exp/sequential_model.rds \
 		${PWD}/data/mobility_modelling/gravity_power/sequential_model.rds \
 		${PWD}/data/mobility_modelling/radiation_basic/sequential_model.rds

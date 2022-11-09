@@ -15,8 +15,8 @@ if(interactive()){
               "data/mobility_modelling/gravity_exp/sequential_model_predictions.rds",
               "data/geo/admin2.geojson",
               "output/figures/movement_raster_comparison.png")
-  DIFFERENCE_FILL_SCALE_BREAKS <- "-25,-15,-10,-5,0,5,10,15,25"
-  DIFFERENCE_YAXIS_SCALE_BREAKS <- "0,100,1000,100000"
+  DIFFERENCE_FILL_SCALE_BREAKS <- as.numeric(stringr::str_split("-25,-15,-10,-5,0,5,10,15,25", pattern=",")[[1]])
+  DIFFERENCE_YAXIS_SCALE_BREAKS <- as.numeric(stringr::str_split("0,100,1000,100000", pattern=",")[[1]])
   PLOT_REGLINE_AND_COR_FOR_PREDICTIONS <- 1
 } else {
   .args <- commandArgs(trailingOnly = T)
@@ -111,7 +111,7 @@ name_levels <- data.frame(pcod = population$pcod2) %>%
 
 plot_raster_network <- function(network, fill_scale, name_levels,
                                 title){
-  
+
   p <- network %>%
     mutate(pcod_from = factor(pcod_from, levels = name_levels),
            pcod_to = factor(pcod_to, levels = name_levels)) %>%
@@ -167,14 +167,14 @@ p_all_pairs_kernel <- plot_network_distance_kernel(all_pairs %>% rename(value=va
                                                    distance_matrix,
                                                    ylimits = distance_kernel_ylim,
                                                    xlimits = distance_kernel_xlim,
-                                                   title="All Pairs (Empirical)") +
-  plot_smooth_line_and_equation()
+                                                   title="All Pairs (Empirical)")
+
 p_sequential_kernel <- plot_network_distance_kernel(sequential %>% rename(value=value_mean),
                                                     distance_matrix,
                                                     ylimits = distance_kernel_ylim,
                                                     xlimits = distance_kernel_xlim,
-                                                    title="Sequential (Empirical)") +
-  plot_smooth_line_and_equation()
+                                                    title="Sequential (Empirical)")
+
 p_all_pairs_prediction_kernel <- plot_network_distance_kernel(all_pairs_prediction,
                                                               distance_matrix,
                                                               ylimits = distance_kernel_ylim,
@@ -188,18 +188,18 @@ p_sequential_prediction_kernel <- plot_network_distance_kernel(sequential_predic
                                                               title="Sequential (Modelled)")
 
 if (PLOT_REGLINE_AND_COR_FOR_PREDICTIONS){
-  p_all_pairs_prediction_kernel <- p_all_pairs_prediction_kernel + 
+  p_all_pairs_prediction_kernel <- p_all_pairs_prediction_kernel +
     plot_smooth_line_and_equation()
-  p_sequential_prediction_kernel <- p_sequential_prediction_kernel + 
+  p_sequential_prediction_kernel <- p_sequential_prediction_kernel +
     plot_smooth_line_and_equation()
 }
 
-p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean), 
+p_all_pairs <- plot_raster_network(all_pairs %>% rename(value=value_mean),
                                    fill_scale=fill_scale,
                                    name_levels=name_levels,
                                    title="All Pairs (Empirical)")
 
-p_sequential <- plot_raster_network(sequential %>% rename(value=value_mean), 
+p_sequential <- plot_raster_network(sequential %>% rename(value=value_mean),
                                     fill_scale=fill_scale,
                                     name_levels=name_levels,
                                     title="Sequential (Empirical)")
@@ -227,8 +227,8 @@ empirical_difference <- all_pairs %>%
   drop_na(difference)
 
 prediction_difference <- all_pairs_prediction %>%
-  left_join(sequential_prediction, by=c("pcod_from", "pcod_to")) %>% 
-  mutate(difference = value.x - value.y) %>% 
+  left_join(sequential_prediction, by=c("pcod_from", "pcod_to")) %>%
+  mutate(difference = value.x - value.y) %>%
   drop_na(difference)
 
 combined_difference_values <- c(empirical_difference$difference, prediction_difference$difference)

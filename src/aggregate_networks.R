@@ -4,7 +4,9 @@ suppressPackageStartupMessages({
 
 if (interactive()){
   .args <- c(
-    "",
+    list.files("../../LSHTM/Filr/My_Files/Projects/Ghana/movement/update_09_2021/home/flowkit/playground/data/sensitive/aggregates", 
+               pattern="trips_per_day_admin2", full.names = T),
+    "../../LSHTM/Filr/My_Files/Projects/Ghana/movement/consecutive_trips/data/consecutive_trips_od_matrix_admin.csv",
     ""
   )
 } else {
@@ -21,11 +23,9 @@ read_csv_with_fn_date <- function(fn){
   return(data)
 }
 
-aggregate_network_all_times <- function(network, contemporaneous_obs){
+aggregate_network_all_times <- function(network){
   return(
     network %>% 
-      left_join(contemporaneous_obs, by=c("pcod_from", "pcod_to", "dt")) %>% 
-      filter(contemporaneous) %>% 
       group_by(pcod_from, pcod_to) %>% 
       summarise(n_days = n(),
                 value_sum = sum(value),
@@ -53,17 +53,8 @@ sequential_prepared <- sequential %>%
 write_csv(all_pairs_prepared, gsub("all_pairs_admin2.csv", "all_pairs_admin2_timeseries.csv", tail(.args, 1)))
 write_csv(sequential_prepared, gsub("all_pairs_admin2.csv", "sequential_admin2_timeseries.csv", tail(.args, 1)))
 
-contemporaneous_obs <- all_pairs_prepared %>%
-  left_join(sequential_prepared, by=c("pcod_from", "pcod_to", "dt")) %>% 
-  drop_na(value.y) %>% 
-  select(pcod_from, pcod_to, dt) %>% 
-  mutate(contemporaneous = T)
-
-print(paste0("All pairs observations contemporaneous with sequential: ", scales::percent(nrow(contemporaneous_obs) / nrow(all_pairs))))
-print(paste0("Sequential observations contemporaneous with all pairs: ", scales::percent(nrow(contemporaneous_obs) / nrow(sequential))))
-
-all_pairs_prepared <- aggregate_network_all_times(all_pairs_prepared, contemporaneous_obs=contemporaneous_obs)
-sequential_prepared <- aggregate_network_all_times(sequential_prepared, contemporaneous_obs=contemporaneous_obs)
+all_pairs_prepared <- aggregate_network_all_times(all_pairs_prepared)
+sequential_prepared <- aggregate_network_all_times(sequential_prepared)
 
 empirical_difference <- all_pairs_prepared %>% 
   left_join(sequential_prepared, by=c("pcod_from", "pcod_to")) %>% 

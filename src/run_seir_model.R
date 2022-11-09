@@ -30,7 +30,7 @@ model_format_pop <- population$population
 names(model_format_pop) <- population$pcod2
 
 permutation_list <- list(
-  mobility_model_type = c("gravity_exp", "gravity_power", "radiation_basic"),
+  mobility_model_type = c("gravity_exp", "gravity_power", "gravity_scaled_power", "radiation_basic"),
   mobility_network_type = c("all_pairs", "sequential"),
   r_value = c(3, 1.5, 1.25),
   intro_location = intro_locations$pcod2,

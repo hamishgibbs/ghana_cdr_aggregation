@@ -58,6 +58,8 @@ network$select = as.integer(1)
 network$shift = as.integer(0)
 network$n = as.integer(round(network$n, 0))
 
+network <- network %>% filter(n > 0)
+
 daily_events <- list()
 for (i in 1:N_MODEL_DATES){
   network$time <- i

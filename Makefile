@@ -213,7 +213,7 @@ ${PWD}/data/epi_modelling/results/DONE_FOCUS_LOCS.rds: ${PWD}/src/run_seir_model
     ${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds \
     ${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds \
     ${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds \
-    ${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
+		${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
     ${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds
 	export N_MODEL_RUNS="10" && \
 	$(R_INTERPRETER) $^ $@
@@ -228,7 +228,7 @@ ${PWD}/data/epi_modelling/results/DONE_ALL_LOCS.rds: ${PWD}/src/run_seir_model.R
     ${PWD}/data/epi_modelling/events/gravity_exp/sequential_events.rds \
     ${PWD}/data/epi_modelling/events/gravity_power/all_pairs_events.rds \
     ${PWD}/data/epi_modelling/events/gravity_power/sequential_events.rds \
-    ${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
+		${PWD}/data/epi_modelling/events/radiation_basic/all_pairs_events.rds \
     ${PWD}/data/epi_modelling/events/radiation_basic/sequential_events.rds
 	export N_MODEL_RUNS="1" && \
 	$(R_INTERPRETER) $^ $@

@@ -29,8 +29,10 @@ p <- kernels %>%
   scale_fill_manual(values = c("blue", "red")) + 
   facet_wrap(~model) + 
   theme_classic() + 
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size=13)) + 
   labs(x="Distance (km)", y = "Travellers", color=NULL, fill=NULL)
 
 ggsave(tail(.args, 1),
        p,
-       width=10, height=6, units="in")
+       width=12, height=7, units="in")

@@ -8,7 +8,8 @@ default: \
 	${PWD}/output/figures/cell_sites_per_district.png \
 	${PWD}/output/figures/figure_1.png \
 	data_cleaning \
-	mobility_modelling
+	mobility_modelling \
+	epi_modelling_figures
 
 mobility_modelling: \
 	${PWD}/data/mobility_modelling/gravity_power/all_pairs_model.rds \
@@ -146,7 +147,7 @@ ${PWD}/output/figures/movement_raster_comparison_gravity_power.png: ${PWD}/src/e
 		${PWD}/data/geo/admin2.geojson
 	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,500,1000" && \
 	export DIFFERENCE_YAXIS_SCALE_BREAKS="0,10,100,1000,10000" && \
-	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="0" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/movement_raster_comparison_gravity_exp.png: ${PWD}/src/evaluate_mobility_models.R \
@@ -176,7 +177,7 @@ ${PWD}/output/figures/movement_raster_comparison_radiation_basic.png: ${PWD}/src
 		${PWD}/data/geo/admin2.geojson
 	export DIFFERENCE_FILL_SCALE_BREAKS="0,10,100,1000,10000" && \
 	export DIFFERENCE_YAXIS_SCALE_BREAKS="-5,0,10,100,1000,10000" && \
-	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="1" && \
+	export PLOT_REGLINE_AND_COR_FOR_PREDICTIONS="0" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/tables/mobility_model_comparison.csv: ${PWD}/src/compare_mobility_models.R \
@@ -321,25 +322,16 @@ ${PWD}/output/figures/radiation_basic_modelled_trajectory.png: ${PWD}/src/plot_m
 
 # Plot time difference for all introduction locations
 
-${PWD}/output/figures/gravity_exp_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
-		${PWD}/data/geo/admin2.geojson \
-		${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national_peaks.csv
-	export MOBILITY_MODEL_TITLE="Gravity Model (Exponential)" && \
-	export TIME_DIFFERENCE_COLOR_BREAKS="-500,-200,-100,-50,0,50,100" && \
+${PWD}/data/mobility_modelling/peak_time_differences.csv: ${PWD}/src/calculate_peak_time_difference.R \
+		${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national_peaks.csv \
+    ${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national_peaks.csv \
+    ${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national_peaks.csv
 	$(R_INTERPRETER) $^ $@
 
-${PWD}/output/figures/gravity_power_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
+${PWD}/output/figures/gravity_exp_time_delay_all_locs.png ${PWD}/output/figures/gravity_power_time_delay_all_locs.png ${PWD}/output/figures/radiation_basic_time_delay_all_locs.png output/figures/R0_1.5_time_delay_all_locs.png &: ${PWD}/src/plot_all_introduction_locations.R \
 		${PWD}/data/geo/admin2.geojson \
-		${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national_peaks.csv
-	export MOBILITY_MODEL_TITLE="Gravity Model (Power)" && \
-	export TIME_DIFFERENCE_COLOR_BREAKS="-150,-50,-10,0,10,50,150" && \
-	$(R_INTERPRETER) $^ $@
-
-${PWD}/output/figures/radiation_basic_time_delay_all_locs.png: ${PWD}/src/plot_all_introduction_locations.R \
-		${PWD}/data/geo/admin2.geojson \
-		${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national_peaks.csv
-	export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
-	export TIME_DIFFERENCE_COLOR_BREAKS="-250,-100,-50,-20,-10,0,10,50,100" && \
+		${PWD}/data/mobility_modelling/peak_time_differences.csv
+	export TIME_DIFFERENCE_COLOR_BREAKS="-Inf,-365,-90,-30,-14,-11,-7,0,7,14,30,90,Inf" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \

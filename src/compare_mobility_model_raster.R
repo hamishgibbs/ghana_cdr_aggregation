@@ -37,19 +37,21 @@ kernels$network_type <- factor(kernels$network_type, levels = c("all_pairs", "se
                                labels = c("All Pairs", "Sequential"))
 
 plot_raster_network <- function(network, name_levels){
-  
+
   p <- network %>%
     mutate(pcod_from = factor(pcod_from, levels = name_levels),
            pcod_to = factor(pcod_to, levels = name_levels)) %>%
     ggplot() +
     geom_raster(aes(x = pcod_from, y = pcod_to, fill=value)) +
     colorspace::scale_fill_continuous_sequential("Hawaii", trans="log10",
-                                                 labels = scales::comma) + 
-    theme_classic() + 
+                                                 labels = scales::comma) +
+    theme_classic() +
+    facet_grid(network_type~model) +
     theme(legend.position = "right",
           axis.text = element_blank(),
-          axis.ticks = element_blank()) +
-    facet_grid(network_type~model) + 
+          axis.ticks = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_text(size=10)) +
     labs(x = NULL, y = NULL, fill="Daily Trips")
   return(p)
 }
@@ -62,4 +64,4 @@ p <- plot_raster_network(kernels, name_levels=name_levels)
 
 ggsave(tail(.args, 1),
        p,
-       width=10, height=6, units="in")
+       width=10, height=5, units="in")

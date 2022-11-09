@@ -15,8 +15,8 @@ if(interactive()){
               "data/mobility_modelling/gravity_exp/sequential_model_predictions.rds",
               "data/geo/admin2.geojson",
               "output/figures/movement_raster_comparison.png")
-  DIFFERENCE_FILL_SCALE_BREAKS <- "-25,-15,-10,-5,0,5,10,15,25"
-  DIFFERENCE_YAXIS_SCALE_BREAKS <- "0,100,1000,100000"
+  DIFFERENCE_FILL_SCALE_BREAKS <- as.numeric(stringr::str_split("-25,-15,-10,-5,0,5,10,15,25", pattern=",")[[1]])
+  DIFFERENCE_YAXIS_SCALE_BREAKS <- as.numeric(stringr::str_split("0,100,1000,100000", pattern=",")[[1]])
   PLOT_REGLINE_AND_COR_FOR_PREDICTIONS <- 1
 } else {
   .args <- commandArgs(trailingOnly = T)

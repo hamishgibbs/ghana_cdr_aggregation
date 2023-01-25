@@ -6,7 +6,7 @@ Repository for the analysis of the impact of Call Detail Record (CDR) aggregatio
 
 #### Usage
 
-R and Python scripts for conducting this analysis are located in the `src` directory.
+R scripts for conducting this analysis are located in the `src` directory.
 
 The data dependencies of each script, and the flow of data between scripts is available in the `Makefile`.
 

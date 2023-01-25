@@ -18,21 +18,30 @@ kernels$model <- factor(kernels$model, levels = c("empirical", "gravity_exp", "g
 kernels$network_type <- factor(kernels$network_type, levels = c("all_pairs", "sequential"),
                         labels = c("All Pairs", "Sequential"))
 
-p <- kernels %>% 
-  ggplot() + 
-  geom_jitter(aes(x = distance, y = value, color=network_type), size = 0.01) +
-  geom_ribbon(aes(x = distance, xmin = distance, xmax = distance, y = value, ymax = value, ymin = value, 
-                  fill=network_type)) +
-  scale_y_continuous(trans="log10", labels = scales::comma) +
-  scale_x_continuous(trans="log10") +
-  scale_color_manual(values = c("blue", "red")) + 
-  scale_fill_manual(values = c("blue", "red")) + 
-  facet_wrap(~model) + 
-  theme_classic() + 
-  theme(strip.background = element_blank(),
-        strip.text = element_text(size=13)) + 
-  labs(x="Distance (km)", y = "Travellers", color=NULL, fill=NULL)
+p <- list()
+
+for (i in 1:length(unique(kernels$model))){
+  title <- letters[i]
+  focus_model <- levels(kernels$model)[i]
+  p[[i]] <- subset(kernels, model == focus_model) %>% 
+    ggplot() + 
+    geom_jitter(aes(x = distance, y = value, color=network_type), size = 0.01) +
+    geom_ribbon(aes(x = distance, xmin = distance, xmax = distance, y = value, ymax = value, ymin = value, 
+                    fill=network_type)) +
+    scale_y_continuous(trans="log10", labels = scales::comma) +
+    scale_x_continuous(trans="log10", limits = c(1, max(kernels$distance))) +
+    scale_color_manual(values = c("blue", "red")) + 
+    scale_fill_manual(values = c("blue", "red")) + 
+    theme_classic() + 
+    theme(strip.background = element_blank(),
+          strip.text = element_text(size=13)) + 
+    labs(title = title, subtitle = focus_model, x="Distance (km)", y = "Travellers", color=NULL, fill=NULL)
+}
+
+p <- cowplot::plot_grid(plotlist = p)
 
 ggsave(tail(.args, 1),
        p,
        width=12, height=7, units="in")
+
+

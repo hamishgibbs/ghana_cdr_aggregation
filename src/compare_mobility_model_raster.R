@@ -52,7 +52,7 @@ plot_raster_network <- function(network, name_levels){
           axis.ticks = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size=10)) +
-    labs(x = NULL, y = NULL, fill="Daily Trips")
+    labs(x = "Districts by latitude (ascending)", y = "Districts by latitude (ascending)", fill="Daily Trips")
   return(p)
 }
 

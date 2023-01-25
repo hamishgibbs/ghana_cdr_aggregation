@@ -43,9 +43,9 @@ p_time_series <- trajectories_named %>%
         strip.background = element_blank()) + 
   labs(y = "Number of infections", x = "Time",
        title = MOBILITY_MODEL_TITLE,
-       fill = "Aggregation\nMethodology") + 
-  mobility_type_color_scale_no_legend + 
-  mobility_type_fill_scale
+       color = "Aggregation\nMethodology") + 
+  mobility_type_color_scale + 
+  guides(color = guide_legend(override.aes = list(size = 3)))
 
 ggsave(tail(.args, 1),
        p_time_series,

@@ -31,7 +31,8 @@ epi_modelling_figures: \
 	${PWD}/output/figures/radiation_basic_modelled_trajectory.png \
 	${PWD}/output/figures/gravity_power_time_delay_all_locs.png \
 	${PWD}/output/figures/gravity_exp_time_delay_all_locs.png \
-	${PWD}/output/figures/radiation_basic_time_delay_all_locs.png
+	${PWD}/output/figures/radiation_basic_time_delay_all_locs.png \
+	${PWD}/output/figures/modelled_trajectories_comparison.png
 
 epi_modelling_results: \
 	${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv \
@@ -296,11 +297,6 @@ ${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national.csv: $
 ${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/*_trajectory_1.rds
 	$(R_INTERPRETER) $^ $@
-#${PWD}/output/figures/peak_infected_proportion_boxplot.png: ${PWD}/src/plot_modelled_epidemic_peak.R \
-#		${PWD}/data/geo/pcods_admin2.csv \
-#		${PWD}/data/population/population_admin2.csv \
-#		${PWD}/data/epi_modelling/results/focus_locs/epi_model_results_focus_locs.csv
-#	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/gravity_exp_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
@@ -320,6 +316,13 @@ ${PWD}/output/figures/radiation_basic_modelled_trajectory.png: ${PWD}/src/plot_m
 	export MOBILITY_MODEL_TITLE="Radiation Model (Basic)" && \
 	$(R_INTERPRETER) $^ $@
 
+${PWD}/output/figures/modelled_trajectories_comparison.png: ${PWD}/src/compare_modelled_epi_curve.R \
+		${PWD}/data/geo/pcods_admin2.csv \
+		${PWD}/data/epi_modelling/results/gravity_power/focus_locs_results_national.csv \
+		${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv \
+		${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv 
+	$(R_INTERPRETER) $^ $@
+
 # Plot time difference for all introduction locations
 
 ${PWD}/data/mobility_modelling/peak_time_differences.csv: ${PWD}/src/calculate_peak_time_difference.R \
@@ -331,7 +334,7 @@ ${PWD}/data/mobility_modelling/peak_time_differences.csv: ${PWD}/src/calculate_p
 ${PWD}/output/figures/gravity_exp_time_delay_all_locs.png ${PWD}/output/figures/gravity_power_time_delay_all_locs.png ${PWD}/output/figures/radiation_basic_time_delay_all_locs.png output/figures/R0_1.5_time_delay_all_locs.png &: ${PWD}/src/plot_all_introduction_locations.R \
 		${PWD}/data/geo/admin2.geojson \
 		${PWD}/data/mobility_modelling/peak_time_differences.csv
-	export TIME_DIFFERENCE_COLOR_BREAKS="-Inf,-365,-90,-30,-14,-11,-7,0,7,14,30,90,Inf" && \
+	export TIME_DIFFERENCE_COLOR_BREAKS="-Inf,-30,-14,-7,0,7,14,30,Inf" && \
 	$(R_INTERPRETER) $^ $@
 
 ${PWD}/output/figures/cell_sites_per_district.png: ${PWD}/src/plot_cell_sites_per_a2.R \

@@ -260,7 +260,6 @@ ${PWD}/data/epi_modelling/results/DONE_ALL_LOCS.rds: ${PWD}/src/run_seir_model.R
 
 ########## EPI MODEL EVALUATION ##########
 
-# combine national results for focus locs
 ${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid029*.rds \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/infected_fid146*.rds \
@@ -285,7 +284,6 @@ ${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.cs
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/infected_fid240*.rds
 	$(R_INTERPRETER) $^ $@
 
-# combine national results for focus locs
 ${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/gravity_exp/**/**/*_trajectory_1.rds
 	$(R_INTERPRETER) $^ $@
@@ -297,6 +295,8 @@ ${PWD}/data/epi_modelling/results/gravity_power/all_locs_results_national.csv: $
 ${PWD}/data/epi_modelling/results/radiation_basic/all_locs_results_national.csv: ${PWD}/src/combine_epi_model_results.R \
 		${PWD}/data/epi_modelling/results/radiation_basic/**/**/*_trajectory_1.rds
 	$(R_INTERPRETER) $^ $@
+
+########## PLOT EPI MODEL RESULTS ##########
 
 ${PWD}/output/figures/gravity_exp_modelled_trajectory.png: ${PWD}/src/plot_modelled_epidemic_curve.R \
 		${PWD}/data/geo/pcods_admin2.csv \
@@ -322,8 +322,6 @@ ${PWD}/output/figures/modelled_trajectories_comparison.png: ${PWD}/src/compare_m
 		${PWD}/data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv \
 		${PWD}/data/epi_modelling/results/radiation_basic/focus_locs_results_national.csv 
 	$(R_INTERPRETER) $^ $@
-
-# Plot time difference for all introduction locations
 
 ${PWD}/data/mobility_modelling/peak_time_differences.csv: ${PWD}/src/calculate_peak_time_difference.R \
 		${PWD}/data/epi_modelling/results/gravity_exp/all_locs_results_national_peaks.csv \

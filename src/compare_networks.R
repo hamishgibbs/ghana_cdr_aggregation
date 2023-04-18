@@ -12,11 +12,14 @@ if (interactive()){
     "data/cell_sites/cell_sites_admin2.csv",
     "data/geo/admin2.geojson",
     "data/geo/journey_lines.geojson",
-    "output/figures/figure_1.png"
+    "output/figures/figure_1.png",
+    "output/figures/journey_comparison.png"
   )
 } else {
   .args <- commandArgs(trailingOnly = T)
 }
+
+.outputs <- tail(.args, 2)
 
 all_pairs <- read_csv(.args[1], col_types = cols())
 sequential <- read_csv(.args[2], col_types = cols())
@@ -185,7 +188,31 @@ p_trips <- cowplot::plot_grid(p_trips_out_pop, p_trips_cell_sites, ncol = 1)
 p <- cowplot::plot_grid(p_trips, p_net_ap, p_net_s, ncol = 3,
                         rel_widths = c(0.38, 0.31, 0.31))
 
-ggsave(tail(.args, 1), 
+ggsave(.outputs[1], 
        p,
        width = 10, height=5, units='in')
-            
+
+
+journey_comparison <- daily_average_all_pairs %>% 
+  left_join(daily_average_sequential, by = c("pcod_from", "pcod_to")) %>% 
+  rename(all_pairs = value.x,
+         sequential = value.y) %>% 
+  drop_na()
+
+p_journey_comparison <- ggplot(data=journey_comparison) + 
+  geom_jitter(aes(x = all_pairs, y = sequential), size=0.2) + 
+  geom_abline(linetype="dashed") + 
+  theme_classic() + 
+  labs(x = "All Pairs Network", y = "Sequential Network") + 
+  scale_y_continuous(trans="log10", labels = scales::comma) + 
+  scale_x_continuous(trans="log10", labels = scales::comma)
+
+ggsave(.outputs[2], 
+       p_journey_comparison,
+       width = 10, height=7, units='in')
+
+journey_comparison <- journey_comparison %>% 
+  mutate(diff = (sequential - all_pairs) / all_pairs)
+
+paste0("Average difference (sequential to all_pairs): ", 
+       scales::percent(mean(journey_comparison$diff)))

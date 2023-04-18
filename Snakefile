@@ -1,11 +1,12 @@
 from glob import glob
 
+network_types = ["all_pairs", "sequential"]
+mobility_model_types = ["gravity_power", "gravity_exp", "radiation_basic"]
+
 rule all: 
     input: 
-        "data/networks/all_pairs_admin2_timeseries.csv",
-        "data/networks/sequential_admin2_timeseries.csv",
-        "data/networks/all_pairs_admin2.csv",
-        "data/networks/sequential_admin2.csv"
+        expand("data/mobility_modelling/{mobility_model}/{network}_model.rds", 
+            mobility_model = mobility_model_types, network = network_types)
 
 rule aggregate_networks:
     input: 
@@ -18,5 +19,19 @@ rule aggregate_networks:
         "data/networks/sequential_admin2_timeseries.csv",
         "data/networks/all_pairs_admin2.csv",
         "data/networks/sequential_admin2.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule run_mobility_model:
+    input:
+        "src/train_mobility_models.R",
+        "data/population/population_admin2.csv",
+        "data/distance/distance_matrix_admin2.rds",
+        "data/networks/{network}_admin2.csv"
+    output:
+        "data/mobility_modelling/{mobility_model}/{network}_model.rds",
+        "data/mobility_modelling/{mobility_model}/{network}_model_predictions.rds",
+        "data/mobility_modelling/{mobility_model}/{network}_model_check.png",
+        "data/mobility_modelling/{mobility_model}/{network}_model_check.csv"
     shell:
         "Rscript {input} {output}"

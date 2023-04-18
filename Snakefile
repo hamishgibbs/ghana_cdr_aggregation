@@ -1,12 +1,22 @@
+from glob import glob
 
 rule all: 
     input: 
-        "target/rust/release/main"
+        "data/networks/all_pairs_admin2_timeseries.csv",
+        "data/networks/sequential_admin2_timeseries.csv",
+        "data/networks/all_pairs_admin2.csv",
+        "data/networks/sequential_admin2.csv"
 
-rule compile_rust:
-    input:
-        "src/rust/src/main.rs"
+rule aggregate_networks:
+    input: 
+        "src/aggregate_networks.R",
+        glob("../../LSHTM/Filr/My_Files/Projects/Ghana/movement/update_09_2021/home/flowkit/playground/data/sensitive/aggregates/trips_per_day_admin2*.csv"),
+        "../../LSHTM/Filr/My_Files/Projects/Ghana/movement/consecutive_trips/data/consecutive_trips_od_matrix_admin.csv"
     output:
-        "target/rust/release/main"
+        "data/networks/n_intersecting_dates.rds",
+        "data/networks/all_pairs_admin2_timeseries.csv",
+        "data/networks/sequential_admin2_timeseries.csv",
+        "data/networks/all_pairs_admin2.csv",
+        "data/networks/sequential_admin2.csv"
     shell:
-        "cargo build --manifest-path 'src/rust/Cargo.toml' --bin 'main' --release --target-dir 'target/rust'"
+        "Rscript {input} {output}"

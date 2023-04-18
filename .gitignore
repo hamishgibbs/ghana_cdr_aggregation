@@ -3,3 +3,6 @@ output
 .Rhistory
 .DS_Store
 manuscript
+.snakemake
+Cargo.lock
+target

@@ -6,7 +6,8 @@ mobility_model_types = ["gravity_power", "gravity_exp", "radiation_basic"]
 rule all: 
     input: 
         expand("data/mobility_modelling/{mobility_model}/{network}_model.rds", 
-            mobility_model = mobility_model_types, network = network_types)
+            mobility_model = mobility_model_types, network = network_types),
+        "output/figures/figure_1.png"
 
 rule aggregate_networks:
     input: 
@@ -33,5 +34,20 @@ rule run_mobility_model:
         "data/mobility_modelling/{mobility_model}/{network}_model_predictions.rds",
         "data/mobility_modelling/{mobility_model}/{network}_model_check.png",
         "data/mobility_modelling/{mobility_model}/{network}_model_check.csv"
+    shell:
+        "Rscript {input} {output}"
+    
+rule compare_networks:
+    input: 
+        "src/compare_networks.R",
+        "data/networks/all_pairs_admin2_timeseries.csv",
+        "data/networks/sequential_admin2_timeseries.csv",
+        "data/population/population_admin2.csv",
+        "data/cell_sites/cell_sites_admin2.csv",
+        "data/geo/admin2.geojson",
+        "data/geo/journey_lines.geojson"
+    output: 
+        "output/figures/figure_1.png",
+        "output/figures/journey_comparison.png"
     shell:
         "Rscript {input} {output}"

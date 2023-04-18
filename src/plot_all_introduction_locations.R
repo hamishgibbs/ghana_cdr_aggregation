@@ -101,8 +101,6 @@ for (model_data in model_peaks_time_differences){
   
 }
 
-# Do another one at R0 == 1.5 for the main text
-
 all_model_peak_data <- peaks_time_difference %>% 
   filter(R0 == 1.5)
 

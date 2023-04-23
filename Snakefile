@@ -1,12 +1,12 @@
 from glob import glob
 
 network_types = ["all_pairs", "sequential"]
-mobility_model_types = ["gravity_power", "gravity_exp", "radiation_basic"]
+mobility_model_types = ["gravity_exp", "gravity_power", "radiation_basic"]
 
 rule all: 
     input: 
-        expand("data/mobility_modelling/{mobility_model}/{network}_model.rds", 
-            mobility_model = mobility_model_types, network = network_types),
+        "output/figures/movement_kernel_comparison.png",
+        "output/figures/movement_raster_comparison.png",
         "output/figures/figure_1.png"
 
 rule aggregate_networks:
@@ -37,6 +37,37 @@ rule run_mobility_model:
     shell:
         "Rscript {input} {output}"
     
+rule combine_mobility_model_predictions:
+    input: 
+        "src/combine_mobility_model_predictions.R",
+        "data/distance/distance_matrix_admin2.rds",
+        "data/networks/all_pairs_admin2.csv",
+        "data/networks/sequential_admin2.csv",
+        expand("data/mobility_modelling/{mobility_model}/{network}_model_predictions.rds", mobility_model = mobility_model_types, network = network_types)
+    output: 
+        "data/mobility_modelling/mobility_model_predictions.csv"
+    shell: 
+        "Rscript {input} {output}"
+
+rule compare_mobility_model_kernel:
+    input:
+        "src/compare_mobility_model_kernel.R",
+		"data/mobility_modelling/mobility_model_predictions.csv"
+    output:
+        "output/figures/movement_kernel_comparison.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule compare_mobility_model_raster:
+    input:
+        "src/compare_mobility_model_raster.R",
+        "data/mobility_modelling/mobility_model_predictions.csv",
+        "data/geo/admin2.geojson"
+    output:
+        "output/figures/movement_raster_comparison.png"
+    shell:
+        "Rscript {input} {output}"
+
 rule compare_networks:
     input: 
         "src/compare_networks.R",

@@ -10,7 +10,8 @@ rule all:
         "output/figures/movement_kernel_comparison.png",
         "output/figures/movement_raster_comparison.png",
         "output/figures/figure_1.png",
-        expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
+        expand("output/figures/{mobility_model}_modelled_trajectory.png", mobility_model=mobility_model_types),
+        "output/figures/modelled_trajectories_comparison.png"
 
 rule aggregate_networks:
     input: 
@@ -123,4 +124,24 @@ rule combine_epi_modelling_focus_results:
     output: 
         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
     shell: 
+        "Rscript {input} {output}"
+
+rule epi_model_trajectory: 
+    input:
+        "src/plot_modelled_epidemic_curve.R",
+        "data/geo/pcods_admin2.csv",
+        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
+    output:
+        "output/figures/{mobility_model}_modelled_trajectory.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule epi_model_trajectory_comparison: 
+    input:
+        "src/compare_modelled_epi_curve.R",
+        "data/geo/pcods_admin2.csv",
+        expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
+    output:
+        "output/figures/modelled_trajectories_comparison.png"
+    shell:
         "Rscript {input} {output}"

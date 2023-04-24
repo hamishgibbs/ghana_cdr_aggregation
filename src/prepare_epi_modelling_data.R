@@ -22,9 +22,6 @@ N_MODEL_DATES <- 1500
   "data/epi_modelling/intro_locs_focus.csv"
 )
 
-# Time resolution of the model (days)
-TSPAN_INTERVAL <- 7
-
 pop <- read_csv(.args[1], col_types = cols()) %>% 
   mutate(population = as.integer(population))
 
@@ -69,13 +66,10 @@ network$select = as.integer(1)
 network$shift = as.integer(0)
 network$n = as.integer(round(network$n, 0))
 
-# Scale movement by the time resolution of the model
-network$n = network$n * TSPAN_INTERVAL
-
 network <- network %>% filter(n > 0)
 
 daily_events <- list()
-for (i in seq(from=1, to=N_MODEL_DATES, by=TSPAN_INTERVAL)){
+for (i in seq(from=1, to=N_MODEL_DATES, by=1)){
   network$time <- i
   daily_events[[i]] <- network
 }

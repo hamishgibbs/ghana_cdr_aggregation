@@ -1,9 +1,9 @@
 from glob import glob
+import pandas as pd
 
 network_types = ["all_pairs", "sequential"]
 mobility_model_types = ["gravity_exp", "gravity_power", "radiation_basic"]
 R0_values = [3, 1.5, 1.25]
-focus_introduction_locations = [30, 147, 165, 208, 241]
 
 rule all: 
     input: 
@@ -107,6 +107,9 @@ rule run_epi_modelling_focus:
     shell:
         "Rscript {input} {output}"
 
+def get_focus_locs():
+    return pd.read_csv("data/epi_modelling/intro_locs_focus.csv")["pcod2"].to_list()
+
 rule combine_epi_modelling_focus_results:
     input: 
         "src/combine_epi_model_results.R",
@@ -114,7 +117,7 @@ rule combine_epi_modelling_focus_results:
             "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
             network = network_types,
             R0 = R0_values,
-            infected = focus_introduction_locations,
+            infected = get_focus_locs(),
             iteration = range(0, 10)
         )
     output: 

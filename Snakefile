@@ -11,7 +11,8 @@ rule all:
         "output/figures/movement_raster_comparison.png",
         "output/figures/figure_1.png",
         expand("output/figures/{mobility_model}_modelled_trajectory.png", mobility_model=mobility_model_types),
-        "output/figures/modelled_trajectories_comparison.png"
+        "output/figures/modelled_trajectories_comparison.png",
+        "data/mobility_modelling/peak_time_differences.csv"
 
 rule aggregate_networks:
     input: 
@@ -97,7 +98,7 @@ rule prepare_epi_modelling_events:
     shell:
         "Rscript {input} {output}"
 
-rule run_epi_modelling_focus:
+rule run_epi_model:
     input: 
         "src/run_seir_model.R",
         "src/seir_model.R",
@@ -119,10 +120,30 @@ rule combine_epi_modelling_focus_results:
             network = network_types,
             R0 = R0_values,
             infected = get_focus_locs(),
-            iteration = range(0, 10)
+            iteration = range(0, 1)
         )
     output: 
-        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
+        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv",
+        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national_peaks.csv"
+    shell: 
+        "Rscript {input} {output}"
+
+def get_all_locs():
+    return pd.read_csv("data/epi_modelling/intro_locs_all.csv")["pcod2"].to_list()
+
+rule combine_epi_modelling_all_results:
+    input: 
+        "src/combine_epi_model_results.R",
+        expand(
+            "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+            network = network_types,
+            R0 = R0_values,
+            infected = get_all_locs(),
+            iteration = 0
+        )
+    output: 
+        "data/epi_modelling/results/{mobility_model}/all_locs_results_national.csv",
+        "data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv"
     shell: 
         "Rscript {input} {output}"
 
@@ -143,5 +164,14 @@ rule epi_model_trajectory_comparison:
         expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
     output:
         "output/figures/modelled_trajectories_comparison.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule calculate_peak_time_diff:
+    input: 
+        "src/calculate_peak_time_difference.R",
+        expand("data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv", mobility_model=mobility_model_types)
+    output:
+        "data/mobility_modelling/peak_time_differences.csv"
     shell:
         "Rscript {input} {output}"

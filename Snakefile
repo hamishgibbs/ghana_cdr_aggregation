@@ -5,6 +5,11 @@ network_types = ["all_pairs", "sequential"]
 mobility_model_types = ["gravity_exp", "gravity_power", "radiation_basic"]
 R0_values = [3, 1.5, 1.25]
 
+with open("hosts.txt", "r") as f:
+    lines = f.readlines()
+server = lines[0].split(":")[0] + "@" + lines[0].split("@")[-1]
+password = lines[0].split(":")[-1].split("@")[0]
+
 rule all: 
     input: 
         "output/figures/movement_kernel_comparison.png",
@@ -96,7 +101,7 @@ rule prepare_epi_modelling_events:
     output: 
         "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
     shell:
-        "Rscript {input} {output}"
+        "Rscript {input} {output} && " + f"sshpass -p '{password}'" + " scp {output} " + f"{server}:ghana_cdr_aggregation/" + "{output}"
 
 rule run_epi_model:
     input: 

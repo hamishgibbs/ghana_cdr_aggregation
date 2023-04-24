@@ -38,6 +38,10 @@ model <- run_seir_model(infected_location=subset(population, pcod2 == model_para
                         population=model_format_pop,
                         events=events,
                         R0=as.numeric(model_params$r_value))
+model_results <- replicate(2, run(model))
+
+length(model_results)
+
 model_result <- run(model)
 
 model_trajectory <- trajectory(model_result)

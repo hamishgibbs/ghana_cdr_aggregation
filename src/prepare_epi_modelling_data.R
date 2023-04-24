@@ -8,11 +8,11 @@ if (interactive()){
     "data/mobility_modelling/gravity_power/sequential_model_predictions.rds",
     "data/epi_modelling/all_pairs_events.rds"
   )
-  N_MODEL_DATES <- 100
 } else {
   .args <- commandArgs(trailingOnly = T)
-  N_MODEL_DATES <- as.numeric(Sys.getenv("N_MODEL_DATES"))
 }
+
+N_MODEL_DATES <- 1500
 
 pop <- read_csv(.args[1], col_types = cols()) %>% 
   mutate(population = as.integer(population))

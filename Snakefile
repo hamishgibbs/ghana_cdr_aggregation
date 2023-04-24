@@ -2,6 +2,8 @@ from glob import glob
 
 network_types = ["all_pairs", "sequential"]
 mobility_model_types = ["gravity_exp", "gravity_power", "radiation_basic"]
+R0_values = [3, 1.5, 1.25]
+focus_introduction_locations = [30, 147, 165, 208, 241]
 
 rule all: 
     input: 
@@ -85,18 +87,38 @@ rule compare_mobility_model_raster:
 
 rule prepare_epi_modelling_events:
     input: 
-        "src/prepare_epi_modelling_data.R"
-        "data/population/population_admin2.csv"
+        "src/prepare_epi_modelling_data.R",
+        "data/population/population_admin2.csv",
         "data/mobility_modelling/{mobility_model}/{network}_model_predictions.rds"
     output: 
         "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
     shell:
         "Rscript {input} {output}"
 
+rule run_epi_modelling_focus:
+    input: 
+        "src/run_seir_model.R",
+        "src/seir_model.R",
+        "data/epi_modelling/population.rds",
+        "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
+    output:
+        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds"
+    shell:
+        "Rscript {input} {output}"
 
-${PWD}/data/epi_modelling/results/DONE_FOCUS_LOCS.rds: ${PWD}/src/run_seir_model.R \
-		${PWD}/src/seir_model.R \
-		${PWD}/data/epi_modelling/population.rds \
-		${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds \
-	export N_MODEL_RUNS="10" && \
-	$(R_INTERPRETER) $^ $@
+rule combine_epi_modelling_results:
+    input: 
+        "src/combine_epi_model_results.R",
+        expand(
+            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+            mobility_model = "gravity_exp",
+            network = network_types,
+            R0 = R0_values,
+            infected = focus_introduction_locations,
+            iteration = range(0, 10)
+        )
+    output: 
+        "data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv"
+    shell: 
+        "Rscript {input} {output}"
+    

@@ -83,3 +83,20 @@ rule compare_mobility_model_raster:
     shell:
         "Rscript {input} {output}"
 
+rule prepare_epi_modelling_events:
+    input: 
+        "src/prepare_epi_modelling_data.R"
+        "data/population/population_admin2.csv"
+        "data/mobility_modelling/{mobility_model}/{network}_model_predictions.rds"
+    output: 
+        "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
+    shell:
+        "Rscript {input} {output}"
+
+
+${PWD}/data/epi_modelling/results/DONE_FOCUS_LOCS.rds: ${PWD}/src/run_seir_model.R \
+		${PWD}/src/seir_model.R \
+		${PWD}/data/epi_modelling/population.rds \
+		${PWD}/data/epi_modelling/events/gravity_exp/all_pairs_events.rds \
+	export N_MODEL_RUNS="10" && \
+	$(R_INTERPRETER) $^ $@

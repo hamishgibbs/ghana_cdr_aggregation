@@ -6,3 +6,4 @@ manuscript
 .snakemake
 Cargo.lock
 target
+hosts.txt

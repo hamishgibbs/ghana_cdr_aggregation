@@ -23,6 +23,21 @@ rule aggregate_networks:
     shell:
         "Rscript {input} {output}"
 
+rule compare_networks:
+    input: 
+        "src/compare_networks.R",
+        "data/networks/all_pairs_admin2_timeseries.csv",
+        "data/networks/sequential_admin2_timeseries.csv",
+        "data/population/population_admin2.csv",
+        "data/cell_sites/cell_sites_admin2.csv",
+        "data/geo/admin2.geojson",
+        "data/geo/journey_lines.geojson"
+    output: 
+        "output/figures/figure_1.png",
+        "output/figures/journey_comparison.png"
+    shell:
+        "Rscript {input} {output}"
+
 rule run_mobility_model:
     input:
         "src/train_mobility_models.R",
@@ -68,17 +83,3 @@ rule compare_mobility_model_raster:
     shell:
         "Rscript {input} {output}"
 
-rule compare_networks:
-    input: 
-        "src/compare_networks.R",
-        "data/networks/all_pairs_admin2_timeseries.csv",
-        "data/networks/sequential_admin2_timeseries.csv",
-        "data/population/population_admin2.csv",
-        "data/cell_sites/cell_sites_admin2.csv",
-        "data/geo/admin2.geojson",
-        "data/geo/journey_lines.geojson"
-    output: 
-        "output/figures/figure_1.png",
-        "output/figures/journey_comparison.png"
-    shell:
-        "Rscript {input} {output}"

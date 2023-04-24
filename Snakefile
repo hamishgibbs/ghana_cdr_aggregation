@@ -9,7 +9,8 @@ rule all:
     input: 
         "output/figures/movement_kernel_comparison.png",
         "output/figures/movement_raster_comparison.png",
-        "output/figures/figure_1.png"
+        "output/figures/figure_1.png",
+        expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
 
 rule aggregate_networks:
     input: 
@@ -106,19 +107,17 @@ rule run_epi_modelling_focus:
     shell:
         "Rscript {input} {output}"
 
-rule combine_epi_modelling_results:
+rule combine_epi_modelling_focus_results:
     input: 
         "src/combine_epi_model_results.R",
         expand(
-            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-            mobility_model = "gravity_exp",
+            "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
             network = network_types,
             R0 = R0_values,
             infected = focus_introduction_locations,
             iteration = range(0, 10)
         )
     output: 
-        "data/epi_modelling/results/gravity_exp/focus_locs_results_national.csv"
+        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
     shell: 
         "Rscript {input} {output}"
-    

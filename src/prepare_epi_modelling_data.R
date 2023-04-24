@@ -14,6 +14,14 @@ if (interactive()){
 
 N_MODEL_DATES <- 1500
 
+.outputs <- c(
+  tail(.args, 1),
+  "data/epi_modelling/population.rds",
+  "data/epi_modelling/recoded_pcod.rds",
+  "data/epi_modelling/intro_locs_all.csv",
+  "data/epi_modelling/intro_locs_focus.csv"
+)
+
 pop <- read_csv(.args[1], col_types = cols()) %>% 
   mutate(population = as.integer(population))
 
@@ -68,11 +76,11 @@ for (i in 1:N_MODEL_DATES){
 
 daily_events <- do.call(rbind, daily_events)
 
-write_rds(daily_events, tail(.args, 1))
-write_rds(pop, "data/epi_modelling/population.rds")
-write_rds(recoded_pcod2, "data/epi_modelling/recoded_pcod.rds")
-write_csv(pop %>% select(-population), "data/epi_modelling/intro_locs_all.csv")
+write_rds(daily_events, .outputs[1])
+write_rds(pop, .outputs[2])
+write_rds(recoded_pcod2, .outputs[3])
+write_csv(pop %>% select(-population), .outputs[4])
 write_csv(pop %>% select(-population) %>% 
             filter(pcod2 %in% c("fid146", "fid164", "fid029", "fid240", "fid207")), 
-          "data/epi_modelling/intro_locs_focus.csv")
+          .outputs[5])
 

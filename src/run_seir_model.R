@@ -47,4 +47,4 @@ model_trajectory$introduction_location <- model_params$infected
 model_trajectory$R0 <- model_params$r_value
 model_trajectory$sample <- model_params$iteration
 
-write_rds(model_trajectory, model_params$output_fn)
+write_rds(model_trajectory, tail(.args, 1))

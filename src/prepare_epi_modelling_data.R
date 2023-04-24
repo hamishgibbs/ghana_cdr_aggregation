@@ -69,7 +69,7 @@ network$n = as.integer(round(network$n, 0))
 network <- network %>% filter(n > 0)
 
 daily_events <- list()
-for (i in 1:N_MODEL_DATES){
+for (i in seq(from=1, to=N_MODEL_DATES, by=7)){
   network$time <- i
   daily_events[[i]] <- network
 }

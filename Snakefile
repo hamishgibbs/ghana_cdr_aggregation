@@ -7,7 +7,8 @@ R0_values = [3, 1.5, 1.25]
 
 with open("hosts.txt", "r") as f:
     lines = f.readlines()
-server = lines[0].split(":")[0] + "@" + lines[0].split("@")[-1]
+server = lines[0].split(":")[0] + "@" + lines[0].split("@")[-1].strip()
+server = server.split("/")[-1]
 password = lines[0].split(":")[-1].split("@")[0]
 
 rule all: 
@@ -154,7 +155,8 @@ rule scp_epi_model:
 rule run_epi_model:
     input: 
         "hosts.txt",
-        "data/epi_modelling/jobs.txt"
+        "data/epi_modelling/jobs.txt",
+        "data/epi_modelling/scp_epi_model.txt"
     output:
         "run_epi_model.txt"
     shell:

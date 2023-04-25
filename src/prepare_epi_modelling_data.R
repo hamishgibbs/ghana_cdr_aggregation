@@ -12,8 +12,6 @@ if (interactive()){
   .args <- commandArgs(trailingOnly = T)
 }
 
-N_MODEL_DATES <- 1500
-
 .outputs <- c(
   tail(.args, 1),
   "data/epi_modelling/population.rds",
@@ -68,15 +66,7 @@ network$n = as.integer(round(network$n, 0))
 
 network <- network %>% filter(n > 0)
 
-daily_events <- list()
-for (i in seq(from=1, to=N_MODEL_DATES, by=1)){
-  network$time <- i
-  daily_events[[i]] <- network
-}
-
-daily_events <- do.call(rbind, daily_events)
-
-write_rds(daily_events, .outputs[1])
+write_rds(network, .outputs[1])
 write_rds(pop, .outputs[2])
 write_rds(recoded_pcod2, .outputs[3])
 write_csv(pop %>% select(-population), .outputs[4])

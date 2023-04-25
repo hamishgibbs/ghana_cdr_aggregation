@@ -13,6 +13,8 @@ if (interactive()){
   pref <- "ghana_cdr_aggregation/"
 }
 
+N_MODEL_DATES <- 2000
+
 model_params_from_fn <- function(fn){
   fn_split <- stringr::str_split(fn, "/")
   list(
@@ -30,12 +32,20 @@ source(paste0(pref, "src/seir_model.R"))
 population <- read_rds(paste0(pref, "data/epi_modelling/population.rds"))
 events <- read_rds(paste0(pref, "data/epi_modelling/events/", model_params$mobility_model_type, "/", model_params$mobility_network_type, "_events.rds"))
 
+daily_events <- list()
+for (i in seq(from=1, to=N_MODEL_DATES, by=1)){
+  events$time <- i
+  daily_events[[i]] <- events
+}
+
+daily_events <- do.call(rbind, daily_events)
+
 model_format_pop <- population$population
 names(model_format_pop) <- population$pcod2
 
 model <- run_seir_model(infected_location=subset(population, pcod2 == model_params$infected)$node,
                         population=model_format_pop,
-                        events=events,
+                        events=daily_events,
                         R0=as.numeric(model_params$r_value))
 
 model_result <- run(model)

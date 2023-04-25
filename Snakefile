@@ -1,3 +1,4 @@
+import subprocess
 from glob import glob
 import pandas as pd
 
@@ -122,7 +123,7 @@ rule create_epi_model_jobs:
             network = network_types,
             R0 = R0_values,
             infected = get_focus_locs(),
-            iteration = range(0, 1)
+            iteration = range(0, 50)
         ) + \
         expand(
             "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
@@ -132,8 +133,18 @@ rule create_epi_model_jobs:
             infected = get_all_locs(),
             iteration = 0
         )
+        ssh = f"sshpass -p '{password}' ssh {server} "
+        cmd = "'ls ghana_cdr_aggregation/data/epi_modelling/results/**/**/**/*.rds'"
+        finished_files = subprocess.Popen(ssh + cmd, 
+            shell=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE).communicate()
+        finished_files = [x.replace("ghana_cdr_aggregation/", "") for x in finished_files[0].decode("utf-8").split("\n")]
+
+        unfinished_files = list(set(jobs) - set(finished_files))
+
         with open(output[0], 'w') as f:
-            [f.write(f"{x}\n") for x in jobs]
+            [f.write(f"{x}\n") for x in unfinished_files]
 
 rule scp_epi_model:
     input: 
@@ -171,7 +182,7 @@ rule combine_epi_modelling_focus_results:
             network = network_types,
             R0 = R0_values,
             infected = get_focus_locs(),
-            iteration = range(0, 1)
+            iteration = range(0, 50)
         )
     output: 
         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv",

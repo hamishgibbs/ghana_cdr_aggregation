@@ -103,19 +103,63 @@ rule prepare_epi_modelling_events:
     shell:
         "Rscript {input} {output} && " + f"sshpass -p '{password}'" + " scp {output} " + f"{server}:ghana_cdr_aggregation/" + "{output}"
 
-rule run_epi_model:
-    input: 
-        "src/run_seir_model.R",
-        "src/seir_model.R",
-        "data/epi_modelling/population.rds",
-        "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
-    output:
-        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds"
-    shell:
-        "Rscript {input} {output}"
-
 def get_focus_locs():
     return pd.read_csv("data/epi_modelling/intro_locs_focus.csv")["pcod2"].to_list()
+
+def get_all_locs():
+    return pd.read_csv("data/epi_modelling/intro_locs_all.csv")["pcod2"].to_list()
+
+rule create_epi_model_jobs:
+    input:
+        expand("data/epi_modelling/events/{mobility_model}/{network}_events.rds", mobility_model=mobility_model_types, network=network_types)
+    output:
+        "data/epi_modelling/jobs.txt"
+    run:
+        jobs = expand(
+            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+            mobility_model = mobility_model_types,
+            network = network_types,
+            R0 = R0_values,
+            infected = get_focus_locs(),
+            iteration = range(0, 1)
+        ) + \
+        expand(
+            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+            mobility_model = mobility_model_types,
+            network = network_types,
+            R0 = R0_values,
+            infected = get_all_locs(),
+            iteration = 0
+        )
+        with open(output[0], 'w') as f:
+            [f.write(f"{x}\n") for x in jobs]
+
+rule scp_epi_model:
+    input: 
+        "src/run_seir_model.R",
+        "src/run_seir_model.sh",
+        "src/seir_model.R",
+        "data/epi_modelling/population.rds"
+    output:
+        "data/epi_modelling/scp_epi_model.txt"
+    shell: 
+        f"sshpass -p '{password}'" + " scp {input[0]} " + f"{server}:ghana_cdr_aggregation/" + "{input[0]} && \\" +
+        f"sshpass -p '{password}'" + " scp {input[1]} " + f"{server}:ghana_cdr_aggregation/" + "{input[1]} && \\" + 
+        f"sshpass -p '{password}'" + " scp {input[2]} " + f"{server}:ghana_cdr_aggregation/" + "{input[2]} && \\" + 
+        f"sshpass -p '{password}'" + " scp {input[3]} " + f"{server}:ghana_cdr_aggregation/" + "{input[3]} && \\" + 
+        "touch {output}"
+
+# Send epi modelling jobs to hosts with GNU Parallel
+# Do not run in parallel!
+rule run_epi_model:
+    input: 
+        "hosts.txt",
+        "data/epi_modelling/jobs.txt"
+    output:
+        "run_epi_model.txt"
+    shell:
+        "parallel --sshloginfile {input[0]} --jobs 100% -a {input[1]} ghana_cdr_aggregation/src/run_seir_model.sh " + "{{}} && \\" + 
+        "touch {output}"
 
 rule combine_epi_modelling_focus_results:
     input: 
@@ -132,9 +176,6 @@ rule combine_epi_modelling_focus_results:
         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national_peaks.csv"
     shell: 
         "Rscript {input} {output}"
-
-def get_all_locs():
-    return pd.read_csv("data/epi_modelling/intro_locs_all.csv")["pcod2"].to_list()
 
 rule combine_epi_modelling_all_results:
     input: 

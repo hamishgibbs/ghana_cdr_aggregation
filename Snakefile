@@ -105,6 +105,17 @@ rule prepare_epi_modelling_events:
     shell:
         "Rscript {input} {output} && " + f"sshpass -p '{password}'" + " scp {output} " + f"{server}:ghana_cdr_aggregation/" + "{output}"
 
+rule sample_focus_intro_locs:
+    input: 
+        "src/sample_focus_intro_locs.R",
+        "data/geo/pcods_admin2.csv",
+        "data/geo/admin2.geojson"
+    output: 
+        "data/epi_modelling/intro_pcods.csv"
+        "output/introduction_locations.png"
+    shell: 
+        "Rscript {input} {output}"
+
 def get_focus_locs():
     return pd.read_csv("data/epi_modelling/intro_locs_focus.csv")["pcod2"].to_list()
 

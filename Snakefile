@@ -1,16 +1,19 @@
-import subprocess
+import os
 from glob import glob
-import pandas as pd
+import json
 
-network_types = ["all_pairs", "sequential"]
-mobility_model_types = ["gravity_exp", "gravity_power", "radiation_basic"]
-R0_values = [3, 1.5, 1.25]
+with open("config.json") as f:
+    config = json.load(f)
+
+network_types = config["network_types"]
+mobility_model_types = config["mobility_model_types"]
+R0_values = config["R0_values"]
+
+password = os.environ["SERVER_PASSWORD"]
 
 with open("hosts.txt", "r") as f:
     lines = f.readlines()
-server = lines[0].split(":")[0] + "@" + lines[0].split("@")[-1].strip()
-server = server.split("/")[-1]
-password = lines[0].split(":")[-1].split("@")[0]
+servers = [x.strip() for x in lines]
 
 rule all: 
     input: 
@@ -103,7 +106,7 @@ rule prepare_epi_modelling_events:
     output: 
         "data/epi_modelling/events/{mobility_model}/{network}_events.rds"
     shell:
-        "Rscript {input} {output} && " + f"sshpass -p '{password}'" + " scp {output} " + f"{server}:ghana_cdr_aggregation/" + "{output}"
+        "Rscript {input} {output}"
 
 rule sample_focus_intro_locs:
     input: 
@@ -111,137 +114,115 @@ rule sample_focus_intro_locs:
         "data/geo/pcods_admin2.csv",
         "data/geo/admin2.geojson"
     output: 
-        "data/epi_modelling/intro_pcods.csv"
+        "data/epi_modelling/intro_pcods.csv",
         "output/introduction_locations.png"
     shell: 
         "Rscript {input} {output}"
 
-def get_focus_locs():
-    return pd.read_csv("data/epi_modelling/intro_locs_focus.csv")["pcod2"].to_list()
-
-def get_all_locs():
-    return pd.read_csv("data/epi_modelling/intro_locs_all.csv")["pcod2"].to_list()
-
 rule create_epi_model_jobs:
     input:
-        expand("data/epi_modelling/events/{mobility_model}/{network}_events.rds", mobility_model=mobility_model_types, network=network_types)
+        "src/create_epi_model_jobs.py",
+        "data/epi_modelling/intro_pcods.csv",
+        "config.json"
     output:
-        "data/epi_modelling/jobs.txt"
-    run:
-        jobs = expand(
-            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-            mobility_model = mobility_model_types,
-            network = network_types,
-            R0 = R0_values,
-            infected = get_focus_locs(),
-            iteration = range(0, 50)
-        ) + \
-        expand(
-            "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-            mobility_model = mobility_model_types,
-            network = network_types,
-            R0 = R0_values,
-            infected = get_all_locs(),
-            iteration = 0
-        )
-        ssh = f"sshpass -p '{password}' ssh {server} "
-        cmd = "'ls ghana_cdr_aggregation/data/epi_modelling/results/**/**/**/*.rds'"
-        finished_files = subprocess.Popen(ssh + cmd, 
-            shell=True, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE).communicate()
-        finished_files = [x.replace("ghana_cdr_aggregation/", "") for x in finished_files[0].decode("utf-8").split("\n")]
+        "data/epi_modelling/jobs/{server}.txt"
+    shell:
+        "python {input} {output}"
 
-        unfinished_files = list(set(jobs) - set(finished_files))
+rule scp: # scp everything needed to run the epidemic model
+    input:
+        "src/epi_model/Snakefile",
+        "src/epi_model/seir_model.R",
+        "src/epi_model/run_seir_model.R",
+        expand("data/epi_modelling/events/{mobility_model}/{network}_events.rds", 
+            mobility_model=mobility_model_types, 
+            network=network_types),
+        "data/epi_modelling/population.rds",
+        expand("data/epi_modelling/jobs/{server}.txt", server=servers)
+    output:
+        "data/epi_modelling/scp.txt"
+    run: 
+        for i in input:
+            os.system(f"sshpass -p '{password}' scp {i} {servers[0]}:ghana_cdr_aggregation/" + i)
+        os.system(f"touch {output}")
 
-        with open(output[0], 'w') as f:
-            [f.write(f"{x}\n") for x in unfinished_files]
-
-rule scp_epi_model:
+rule dispatch_epi_model_jobs:
     input: 
-        "src/run_seir_model.R",
-        "src/run_seir_model.sh",
-        "src/seir_model.R",
-        "data/epi_modelling/population.rds"
+        "data/epi_modelling/scp.txt",
+        "data/epi_modelling/jobs/{server}.txt"
     output:
-        "data/epi_modelling/scp_epi_model.txt"
-    shell: 
-        f"sshpass -p '{password}'" + " scp {input[0]} " + f"{server}:ghana_cdr_aggregation/" + "{input[0]} && \\" +
-        f"sshpass -p '{password}'" + " scp {input[1]} " + f"{server}:ghana_cdr_aggregation/" + "{input[1]} && \\" + 
-        f"sshpass -p '{password}'" + " scp {input[2]} " + f"{server}:ghana_cdr_aggregation/" + "{input[2]} && \\" + 
-        f"sshpass -p '{password}'" + " scp {input[3]} " + f"{server}:ghana_cdr_aggregation/" + "{input[3]} && \\" + 
+        temporary("data/epi_modelling/run/{server}.txt")
+    shell:
+        f"sshpass -p '{password}' ssh "
+        "{wildcards.server} 'conda activate Renv && cd ghana_cdr_aggregation && "
+        "nohup snakemake -s src/epi_model/Snakefile --cores 7 -k "
+        "--jobname {wildcards.server} --drop-metadata $(< {input[1]}) &'"
+
+rule epi_model_jobs_dispatched:
+    input:
+        expand("data/epi_modelling/run/{server}.txt", server=servers)
+    output:
+        "data/epi_modelling/epi_model_jobs_dispatched.txt"
+    shell:
         "touch {output}"
 
-# Send epi modelling jobs to hosts with GNU Parallel
-# Do not run in parallel!
-rule run_epi_model:
-    input: 
-        "hosts.txt",
-        "data/epi_modelling/jobs.txt",
-        "data/epi_modelling/scp_epi_model.txt"
-    output:
-        "run_epi_model.txt"
-    shell:
-        "parallel --sshloginfile {input[0]} --jobs 100% -a {input[1]} ghana_cdr_aggregation/src/run_seir_model.sh " + "{{}} && \\" + 
-        "touch {output}"
+# rule combine_epi_modelling_focus_results:
+#     input: 
+#         "src/combine_epi_model_results.R",
+#         expand(
+#             "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+#             network = network_types,
+#             R0 = R0_values,
+#             infected = get_focus_locs(),
+#             iteration = range(0, 50)
+#         )
+#     output: 
+#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv",
+#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national_peaks.csv"
+#     shell: 
+#         "Rscript {input} {output}"
 
-rule combine_epi_modelling_focus_results:
-    input: 
-        "src/combine_epi_model_results.R",
-        expand(
-            "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-            network = network_types,
-            R0 = R0_values,
-            infected = get_focus_locs(),
-            iteration = range(0, 50)
-        )
-    output: 
-        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv",
-        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national_peaks.csv"
-    shell: 
-        "Rscript {input} {output}"
+# rule combine_epi_modelling_all_results:
+#     input: 
+#         "src/combine_epi_model_results.R",
+#         expand(
+#             "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+#             network = network_types,
+#             R0 = R0_values,
+#             infected = get_all_locs(),
+#             iteration = 0
+#         )
+#     output: 
+#         "data/epi_modelling/results/{mobility_model}/all_locs_results_national.csv",
+#         "data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv"
+#     shell: 
+#         "Rscript {input} {output}"
 
-rule combine_epi_modelling_all_results:
-    input: 
-        "src/combine_epi_model_results.R",
-        expand(
-            "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-            network = network_types,
-            R0 = R0_values,
-            infected = get_all_locs(),
-            iteration = 0
-        )
-    output: 
-        "data/epi_modelling/results/{mobility_model}/all_locs_results_national.csv",
-        "data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv"
-    shell: 
-        "Rscript {input} {output}"
+# rule epi_model_trajectory: 
+#     input:
+#         "src/plot_modelled_epidemic_curve.R",
+#         "data/geo/pcods_admin2.csv",
+#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
+#     output:
+#         "output/figures/{mobility_model}_modelled_trajectory.png"
+#     shell:
+#         "Rscript {input} {output}"
 
-rule epi_model_trajectory: 
-    input:
-        "src/plot_modelled_epidemic_curve.R",
-        "data/geo/pcods_admin2.csv",
-        "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
-    output:
-        "output/figures/{mobility_model}_modelled_trajectory.png"
-    shell:
-        "Rscript {input} {output}"
+# rule epi_model_trajectory_comparison: 
+#     input:
+#         "src/compare_modelled_epi_curve.R",
+#         "data/geo/pcods_admin2.csv",
+#         expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
+#     output:
+#         "output/figures/modelled_trajectories_comparison.png"
+#     shell:
+#         "Rscript {input} {output}"
 
-rule epi_model_trajectory_comparison: 
-    input:
-        "src/compare_modelled_epi_curve.R",
-        "data/geo/pcods_admin2.csv",
-        expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
-    output:
-        "output/figures/modelled_trajectories_comparison.png"
-    shell:
-        "Rscript {input} {output}"
-
-rule calculate_peak_time_diff:
-    input: 
-        "src/calculate_peak_time_difference.R",
-        expand("data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv", mobility_model=mobility_model_types)
-    output:
-        "data/mobility_modelling/peak_time_differences.csv"
-    shell:
-        "Rscript {input} {output}"
+# rule calculate_peak_time_diff:
+#     input: 
+#         "src/calculate_peak_time_difference.R",
+#         expand("data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv", mobility_model=mobility_model_types)
+#     output:
+#         "data/mobility_modelling/peak_time_differences.csv"
+#     shell:
+#        "Rscript {input} {output}"

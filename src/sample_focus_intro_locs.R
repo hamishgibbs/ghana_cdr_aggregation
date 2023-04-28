@@ -1,4 +1,5 @@
 suppressPackageStartupMessages({
+    require(ggplot2)
     require(data.table)
     require(sf)
 })

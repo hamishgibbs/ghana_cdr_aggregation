@@ -5,15 +5,21 @@ suppressPackageStartupMessages({
 
 if (interactive()){
   .args <- c(
+    "src/seir_model.R",
+    "data/epi_modelling/population.rds",
+    "data/epi_modelling/events/gravity_exp/all_pairs_events.rds",
     "data/epi_modelling/results/gravity_exp/all_pairs/R0_3.0/infected_fid029_trajectory_0.rds"
   )
-  pref <- ""
 } else {
   .args <- commandArgs(trailingOnly = T)
-  pref <- "ghana_cdr_aggregation/"
 }
 
 N_MODEL_DATES <- 2000
+
+source(.args[1])
+population <- read_rds(.args[2])
+events <- read_rds(.args[3])
+
 
 model_params_from_fn <- function(fn){
   fn_split <- stringr::str_split(fn, "/")
@@ -27,10 +33,6 @@ model_params_from_fn <- function(fn){
 }
 
 model_params <- model_params_from_fn(tail(.args, 1))
-
-source(paste0(pref, "src/seir_model.R"))
-population <- read_rds(paste0(pref, "data/epi_modelling/population.rds"))
-events <- read_rds(paste0(pref, "data/epi_modelling/events/", model_params$mobility_model_type, "/", model_params$mobility_network_type, "_events.rds"))
 
 daily_events <- list()
 for (i in seq(from=1, to=N_MODEL_DATES, by=1)){
@@ -47,7 +49,7 @@ model <- run_seir_model(infected_location=subset(population, pcod2 == model_para
                         population=model_format_pop,
                         events=daily_events,
                         R0=as.numeric(model_params$r_value))
-
+set_num_threads(1)
 model_result <- run(model)
 
 model_trajectory <- trajectory(model_result)
@@ -57,4 +59,4 @@ model_trajectory$introduction_location <- model_params$infected
 model_trajectory$R0 <- model_params$r_value
 model_trajectory$sample <- model_params$iteration
 
-write_rds(model_trajectory, paste0(pref, .args[1]))
+write_rds(model_trajectory, tail(.args, 1))

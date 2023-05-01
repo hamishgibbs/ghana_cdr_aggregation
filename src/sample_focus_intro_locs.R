@@ -8,14 +8,15 @@ if (interactive()){
   .args <- c(
     "data/geo/pcods_admin2.csv",
     "data/geo/admin2.geojson",
-    "",
-    ""
+    "data/epi_modelling/intro_pcods_focus.csv",
+    "data/epi_modelling/intro_pcods_all.csv",
+    "output/introduction_locations.png"
   )
 } else {
   .args <- commandArgs(trailingOnly = T)
 }
 
-.outputs <- tail(.args, 2)
+.outputs <- tail(.args, 3)
 
 districts <- fread(.args[1], header = F)
 
@@ -40,6 +41,8 @@ introduction_pcods <- subset(districts, V2 %in% introduction_locations)$V1
 
 fwrite(data.frame(pcod = introduction_pcods), .outputs[1])
 
+fwrite(data.frame(pcod = districts$V1), .outputs[2])
+
 a2$intro <- a2$pcod %in% introduction_pcods
 
 p <- ggplot(data = a2) + 
@@ -48,6 +51,6 @@ p <- ggplot(data = a2) +
   scale_fill_manual(values = c("#EFEFEF", "red")) + 
   theme(legend.position = "none")
 
-ggsave(.outputs[2],
+ggsave(.outputs[3],
        p,
        width=10, height=5.5, units="in")

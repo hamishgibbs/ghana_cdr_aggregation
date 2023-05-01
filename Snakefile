@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from glob import glob
 import json
 
@@ -114,18 +115,59 @@ rule sample_focus_intro_locs:
         "data/geo/pcods_admin2.csv",
         "data/geo/admin2.geojson"
     output: 
-        "data/epi_modelling/intro_pcods.csv",
+        "data/epi_modelling/intro_pcods_focus.csv",
+        "data/epi_modelling/intro_pcods_all.csv",
         "output/introduction_locations.png"
     shell: 
         "Rscript {input} {output}"
 
-rule create_epi_model_jobs:
+def get_locs_from_fn(fn):
+    return pd.read_csv(fn)["pcod"].to_list()
+
+rule create_epi_model_jobs_focus:
     input:
-        "src/create_epi_model_jobs.py",
-        "data/epi_modelling/intro_pcods.csv",
-        "config.json"
+        "data/epi_modelling/intro_pcods_focus.csv"
+    params:
+        expand(
+        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+        mobility_model = mobility_model_types,
+        network = network_types,
+        R0 = R0_values,
+        infected = get_locs_from_fn("data/epi_modelling/intro_pcods_focus.csv"),
+        iteration = range(0, 100)
+     ) 
     output:
-        "data/epi_modelling/jobs/{server}.txt"
+        "data/epi_modelling/jobs/jobs_focus_locations.txt"
+    run:
+        with open(output[0],'w') as f:
+            for i in params[0]:
+                f.write(i + '\n')
+
+rule create_epi_model_jobs_all:
+    input:
+        "data/epi_modelling/intro_pcods_all.csv"
+    params:
+        expand(
+        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+        mobility_model = mobility_model_types,
+        network = network_types,
+        R0 = R0_values,
+        infected = get_locs_from_fn("data/epi_modelling/intro_pcods_all.csv"),
+        iteration = range(0, 10)
+     ) 
+    output:
+        "data/epi_modelling/jobs/jobs_all_locations.txt"
+    run:
+        with open(output[0],'w') as f:
+            for i in params[0]:
+                f.write(i + '\n')
+
+rule chunk_epi_model_jobs:
+    input: 
+        "src/chunk_epi_model_jobs.py",
+        "data/epi_modelling/jobs/jobs_{type}_locations.txt"
+    output:
+        "data/epi_modelling/jobs/{type}/{server}.txt"
     shell:
         "python {input} {output}"
 
@@ -138,7 +180,7 @@ rule scp: # scp everything needed to run the epidemic model
             mobility_model=mobility_model_types, 
             network=network_types),
         "data/epi_modelling/population.rds",
-        expand("data/epi_modelling/jobs/{server}.txt", server=servers)
+        expand("data/epi_modelling/jobs/{type}/{server}.txt", type=["all", "focus"], server=servers)
     output:
         "data/epi_modelling/scp.txt"
     run: 
@@ -149,22 +191,31 @@ rule scp: # scp everything needed to run the epidemic model
 rule dispatch_epi_model_jobs:
     input: 
         "data/epi_modelling/scp.txt",
-        "data/epi_modelling/jobs/{server}.txt"
+        "data/epi_modelling/jobs/{type}/{server}.txt"
     output:
-        temporary("data/epi_modelling/run/{server}.txt")
+        "data/epi_modelling/run/{type}/{server}.txt"
     shell:
         f"sshpass -p '{password}' ssh "
         "{wildcards.server} 'conda activate Renv && cd ghana_cdr_aggregation && "
-        "nohup snakemake -s src/epi_model/Snakefile --cores 7 -k "
-        "--jobname {wildcards.server} --drop-metadata $(< {input[1]}) &'"
+        "{{ snakemake -s src/epi_model/Snakefile --cores 7 -k "
+        "--jobname {wildcards.type}_{wildcards.server} --drop-metadata --rerun-incomplete $(< {input[1]}) ; }} > /tmp/log/run_epi_model.{wildcards.type}.{wildcards.server} 2>&1 & disown %1' & touch {output}"
 
-rule epi_model_jobs_dispatched:
+rule epi_model_jobs_dispatched_focus:
     input:
-        expand("data/epi_modelling/run/{server}.txt", server=servers)
+        expand("data/epi_modelling/run/focus/{server}.txt", server=servers)
     output:
-        "data/epi_modelling/epi_model_jobs_dispatched.txt"
+        "data/epi_modelling/epi_model_jobs_dispatched_focus.txt"
     shell:
         "touch {output}"
+
+rule epi_model_jobs_dispatched_all:
+    input:
+        expand("data/epi_modelling/run/all/{server}.txt", server=servers)
+    output:
+        "data/epi_modelling/epi_model_jobs_dispatched_all.txt"
+    shell:
+        "touch {output}"
+
 
 # rule combine_epi_modelling_focus_results:
 #     input: 

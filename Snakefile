@@ -129,7 +129,7 @@ rule create_epi_model_jobs_focus:
         "data/epi_modelling/intro_pcods_focus.csv"
     params:
         expand(
-        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+        "data/epi_modelling/results_slim/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
         mobility_model = mobility_model_types,
         network = network_types,
         R0 = R0_values,
@@ -148,7 +148,7 @@ rule create_epi_model_jobs_all:
         "data/epi_modelling/intro_pcods_all.csv"
     params:
         expand(
-        "data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
+        "data/epi_modelling/results_slim/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
         mobility_model = mobility_model_types,
         network = network_types,
         R0 = R0_values,
@@ -176,6 +176,7 @@ rule scp: # scp everything needed to run the epidemic model
         "src/epi_model/Snakefile",
         "src/epi_model/seir_model.R",
         "src/epi_model/run_seir_model.R",
+        "src/epi_model/slim_seir_model_results.R",
         expand("data/epi_modelling/events/{mobility_model}/{network}_events.rds", 
             mobility_model=mobility_model_types, 
             network=network_types),

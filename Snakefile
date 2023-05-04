@@ -218,6 +218,20 @@ rule epi_model_jobs_dispatched_all:
         "touch {output}"
 
 
+rule check_server_logs:
+    output:
+        "data/epi_modelling/logs/{type}/{server}.txt"
+    shell:
+        f"sshpass -p '{password}' " + "scp {wildcards.server}:/tmp/log/run_epi_model.{wildcards.type}.{wildcards.server} {output}"
+
+rule check_logs:
+    input:
+        expand("data/epi_modelling/logs/{type}/{server}.txt", type=["focus"], server=servers)
+    output:
+        "data/epi_modelling/logs/combined.txt"
+    shell:
+        "cat {input} > {output}"
+
 # rule combine_epi_modelling_focus_results:
 #     input: 
 #         "src/combine_epi_model_results.R",

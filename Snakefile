@@ -129,7 +129,7 @@ rule create_epi_model_jobs_focus:
         "data/epi_modelling/intro_pcods_focus.csv"
     params:
         expand(
-        "data/epi_modelling/results_slim/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
+        "data/epi_modelling/results_slim/focus/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
         mobility_model = mobility_model_types,
         network = network_types,
         R0 = R0_values,
@@ -148,7 +148,7 @@ rule create_epi_model_jobs_all:
         "data/epi_modelling/intro_pcods_all.csv"
     params:
         expand(
-        "data/epi_modelling/results_slim/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
+        "data/epi_modelling/results_slim/all/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds",
         mobility_model = mobility_model_types,
         network = network_types,
         R0 = R0_values,
@@ -217,7 +217,6 @@ rule epi_model_jobs_dispatched_all:
     shell:
         "touch {output}"
 
-
 rule check_server_logs:
     output:
         "data/epi_modelling/logs/{type}/{server}.txt"
@@ -226,7 +225,7 @@ rule check_server_logs:
 
 rule check_logs:
     input:
-        expand("data/epi_modelling/logs/{type}/{server}.txt", type=["focus"], server=servers)
+        expand("data/epi_modelling/logs/{type}/{server}.txt", type=["focus", "all"], server=servers)
     output:
         "data/epi_modelling/logs/combined.txt"
     shell:

@@ -10,7 +10,7 @@ network_types = config["network_types"]
 mobility_model_types = config["mobility_model_types"]
 R0_values = config["R0_values"]
 
-password = os.environ["SERVER_PASSWORD"]
+password = os.environ["SERVERPASSWORD"]
 
 with open("hosts.txt", "r") as f:
     lines = f.readlines()
@@ -230,6 +230,59 @@ rule check_logs:
         "data/epi_modelling/logs/combined.txt"
     shell:
         "cat {input} > {output}"
+
+rule concat_cumulative_R:
+    input:
+        "src/concat_cumulative_R.R",
+        lambda wildcards: glob("data/epi_modelling/results_slim/focus/{mobility_model}.{network}.R0_{R0}.infected_{infected}.*.rds".format(
+            mobility_model=wildcards.mobility_model,
+            network=wildcards.network,
+            R0=wildcards.R0,
+            infected=wildcards.infected))
+    output:
+        "data/epi_modelling/results/R_cumulative_quantiles/{mobility_model}.{network}.R0_{R0}.infected_{infected}.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule plot_modelled_epidemic_curve:
+    input:
+        "src/plot_modelled_epidemic_curve.R",
+        "data/geo/pcods_admin2.csv",
+        "data/geo/admin2_simplified.geojson",
+        glob("/Users/hamishgibbs/Documents/UCL/ghana_cdr_aggregation/data/epi_modelling/results/R_cumulative_quantiles/*.csv")
+    output:
+        "output/figures/cumulative_R_all_intros_p1.png",
+        "output/figures/cumulative_R_all_intros_p2.png",
+        "output/figures/cumulative_R_subset_intros.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule t_test_epi_quantities: 
+    input:
+        "src/t_test_epi_quantities.R"
+    output:
+        "data/epi_modelling/results/t_test_epi_quantities.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule fmt_t_test_epi_quantities:
+    input:
+        "src/fmt_t_test_epi_quantities.R",
+        "data/epi_modelling/results/t_test_epi_quantities.csv"
+    output:
+        "output/fmt_t_test_epi_quantities.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule spearman_topology: 
+    input:
+        "src/spearman_topology.R",
+        "data/geo/pcods_admin2.csv"
+    output:
+        "output/fmt_spearman.csv",
+        "output/fmt_spearman_focus.csv"
+    shell:
+        "Rscript {input} {output}"
 
 # rule combine_epi_modelling_focus_results:
 #     input: 

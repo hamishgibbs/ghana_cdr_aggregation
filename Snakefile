@@ -284,63 +284,11 @@ rule spearman_topology:
     shell:
         "Rscript {input} {output}"
 
-# rule combine_epi_modelling_focus_results:
-#     input: 
-#         "src/combine_epi_model_results.R",
-#         expand(
-#             "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-#             network = network_types,
-#             R0 = R0_values,
-#             infected = get_focus_locs(),
-#             iteration = range(0, 50)
-#         )
-#     output: 
-#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv",
-#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national_peaks.csv"
-#     shell: 
-#         "Rscript {input} {output}"
-
-# rule combine_epi_modelling_all_results:
-#     input: 
-#         "src/combine_epi_model_results.R",
-#         expand(
-#             "data/epi_modelling/results/{{mobility_model}}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds", 
-#             network = network_types,
-#             R0 = R0_values,
-#             infected = get_all_locs(),
-#             iteration = 0
-#         )
-#     output: 
-#         "data/epi_modelling/results/{mobility_model}/all_locs_results_national.csv",
-#         "data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv"
-#     shell: 
-#         "Rscript {input} {output}"
-
-# rule epi_model_trajectory: 
-#     input:
-#         "src/plot_modelled_epidemic_curve.R",
-#         "data/geo/pcods_admin2.csv",
-#         "data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv"
-#     output:
-#         "output/figures/{mobility_model}_modelled_trajectory.png"
-#     shell:
-#         "Rscript {input} {output}"
-
-# rule epi_model_trajectory_comparison: 
-#     input:
-#         "src/compare_modelled_epi_curve.R",
-#         "data/geo/pcods_admin2.csv",
-#         expand("data/epi_modelling/results/{mobility_model}/focus_locs_results_national.csv", mobility_model=mobility_model_types)
-#     output:
-#         "output/figures/modelled_trajectories_comparison.png"
-#     shell:
-#         "Rscript {input} {output}"
-
-# rule calculate_peak_time_diff:
-#     input: 
-#         "src/calculate_peak_time_difference.R",
-#         expand("data/epi_modelling/results/{mobility_model}/all_locs_results_national_peaks.csv", mobility_model=mobility_model_types)
-#     output:
-#         "data/mobility_modelling/peak_time_differences.csv"
-#     shell:
-#        "Rscript {input} {output}"
+rule network_equation_plots: 
+    input: 
+        "src/network_equation_plots.R"
+    output:
+        "output/figures/seq_edge_scaling.png"
+        "output/figures/ap_edge_scaling.png"
+    shell:
+        "Rscript {input} {output}"

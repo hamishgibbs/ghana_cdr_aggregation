@@ -45,10 +45,10 @@ in_fn <- list.files("data/epi_modelling/results_slim/focus",
                     pattern='.rds',
                     full.names = T)
 
-#in_fn <- c(in_fn[grepl('gravity_exp.all_pairs.R0_1.25.infected_fid136', in_fn)],
-#           in_fn[grepl('gravity_exp.sequential.R0_1.25.infected_fid136', in_fn)],
-#           in_fn[grepl('gravity_exp.all_pairs.R0_3.infected_fid136', in_fn)],
-#           in_fn[grepl('gravity_exp.sequential.R0_3.infected_fid136', in_fn)])
+in_fn <- c(in_fn[grepl('gravity_exp.all_pairs.R0_1.25.infected_fid136', in_fn)],
+           in_fn[grepl('gravity_exp.sequential.R0_1.25.infected_fid136', in_fn)],
+           in_fn[grepl('gravity_exp.all_pairs.R0_3.infected_fid136', in_fn)],
+           in_fn[grepl('gravity_exp.sequential.R0_3.infected_fid136', in_fn)])
 
 epi_quantities <- do.call(rbind, lapply(in_fn, get_epi_quantities))
 epi_quantities <- as.data.table(epi_quantities)
@@ -89,6 +89,5 @@ for (R0_value in unique(epi_quantities$R0)){
 t_test_res <- do.call(rbind, t_test_res)
 
 fwrite(t_test_res, tail(.args, 1))
-
 
 

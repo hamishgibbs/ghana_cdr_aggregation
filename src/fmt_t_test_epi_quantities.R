@@ -17,6 +17,9 @@ t_test_res <- fread(.args[1])
 t_test_res <- t_test_res[order(variable)]
 
 
+ggplot(data=t_test_res) + 
+  
+
 ci_precision <- 2
 p_value_precision <- 4
 

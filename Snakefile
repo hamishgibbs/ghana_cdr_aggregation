@@ -249,11 +249,75 @@ rule plot_modelled_epidemic_curve:
         "src/plot_modelled_epidemic_curve.R",
         "data/geo/pcods_admin2.csv",
         "data/geo/admin2_simplified.geojson",
-        glob("/Users/hamishgibbs/Documents/UCL/ghana_cdr_aggregation/data/epi_modelling/results/R_cumulative_quantiles/*.csv")
+        expand(
+            "data/epi_modelling/results/R_cumulative_quantiles/{mobility_model}.{network}.R0_{R0}.infected_{infected}.csv",
+            mobility_model = mobility_model_types,
+            network = network_types,
+            R0 = R0_values,
+            infected = get_locs_from_fn("data/epi_modelling/intro_pcods_focus.csv")
+        ) 
     output:
         "output/figures/cumulative_R_all_intros_p1.png",
         "output/figures/cumulative_R_all_intros_p2.png",
         "output/figures/cumulative_R_subset_intros.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule concat_I:
+    input:
+        "src/concat_I.R",
+        lambda wildcards: glob("data/epi_modelling/results_slim/focus/{mobility_model}.{network}.R0_{R0}.infected_{infected}.*.rds".format(
+            mobility_model=wildcards.mobility_model,
+            network=wildcards.network,
+            R0=wildcards.R0,
+            infected=wildcards.infected))
+    output:
+        "data/epi_modelling/results/I_quantiles/{mobility_model}.{network}.R0_{R0}.infected_{infected}.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule plot_modelled_epidemic_curve_I:
+    input:
+        "src/plot_modelled_epidemic_curve_I.R",
+        "data/geo/pcods_admin2.csv",
+        expand(
+            "data/epi_modelling/results/I_quantiles/{mobility_model}.{network}.R0_{R0}.infected_{infected}.csv",
+            mobility_model = mobility_model_types,
+            network = network_types,
+            R0 = R0_values,
+            infected = get_locs_from_fn("data/epi_modelling/intro_pcods_focus.csv")
+        ) 
+    output:
+        "output/figures/I_all_intros_p1.png",
+        "output/figures/I_all_intros_p2.png",
+        "output/figures/I_subset_intros.png"
+    shell:
+        "Rscript {input} {output}"
+
+rule concat_peak_difference:
+    input:
+        "src/calculate_peak_time_difference.R",
+        lambda wildcards: glob("data/epi_modelling/results_slim/all/{mobility_model}.all_pairs.R0_{R0}.infected_{infected}.*.rds".format(
+            mobility_model=wildcards.mobility_model, R0=wildcards.R0, infected=wildcards.infected)),
+        lambda wildcards: glob("data/epi_modelling/results_slim/all/{mobility_model}.sequential.R0_{R0}.infected_{infected}.*.rds".format(
+            mobility_model=wildcards.mobility_model, R0=wildcards.R0, infected=wildcards.infected))
+    output:
+        "data/epi_modelling/results/peak_difference/{mobility_model}.R0_{R0}.infected_{infected}.csv"
+    shell:
+        "Rscript {input} {output}"
+
+rule plot_all_introduction_locations:
+    input:
+        "src/plot_all_introduction_locations.R",
+        "data/geo/admin2.geojson",
+        expand(
+            "data/epi_modelling/results/peak_difference/{mobility_model}.R0_{R0}.infected_{infected}.csv",
+            mobility_model = mobility_model_types,
+            R0 = R0_values,
+            infected = get_locs_from_fn("data/epi_modelling/intro_pcods_all.csv")
+        )
+    output:
+        "output/figures/R0_1.5_time_delay_all_locs.png"
     shell:
         "Rscript {input} {output}"
 

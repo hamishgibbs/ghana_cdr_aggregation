@@ -8,11 +8,17 @@ if (interactive()){
     "data/mobility_modelling/gravity_power/sequential_model_predictions.rds",
     "data/epi_modelling/all_pairs_events.rds"
   )
-  N_MODEL_DATES <- 100
 } else {
   .args <- commandArgs(trailingOnly = T)
-  N_MODEL_DATES <- as.numeric(Sys.getenv("N_MODEL_DATES"))
 }
+
+.outputs <- c(
+  tail(.args, 1),
+  "data/epi_modelling/population.rds",
+  "data/epi_modelling/recoded_pcod.rds",
+  "data/epi_modelling/intro_locs_all.csv",
+  "data/epi_modelling/intro_locs_focus.csv"
+)
 
 pop <- read_csv(.args[1], col_types = cols()) %>% 
   mutate(population = as.integer(population))
@@ -60,19 +66,11 @@ network$n = as.integer(round(network$n, 0))
 
 network <- network %>% filter(n > 0)
 
-daily_events <- list()
-for (i in 1:N_MODEL_DATES){
-  network$time <- i
-  daily_events[[i]] <- network
-}
-
-daily_events <- do.call(rbind, daily_events)
-
-write_rds(daily_events, tail(.args, 1))
-write_rds(pop, "data/epi_modelling/population.rds")
-write_rds(recoded_pcod2, "data/epi_modelling/recoded_pcod.rds")
-write_csv(pop %>% select(-population), "data/epi_modelling/intro_locs_all.csv")
+write_rds(network, .outputs[1])
+write_rds(pop, .outputs[2])
+write_rds(recoded_pcod2, .outputs[3])
+write_csv(pop %>% select(-population), .outputs[4])
 write_csv(pop %>% select(-population) %>% 
             filter(pcod2 %in% c("fid146", "fid164", "fid029", "fid240", "fid207")), 
-          "data/epi_modelling/intro_locs_focus.csv")
+          .outputs[5])
 

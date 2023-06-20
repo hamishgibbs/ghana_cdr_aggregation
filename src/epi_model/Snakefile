@@ -1,0 +1,21 @@
+
+rule run_epi_model:
+	input: 
+		"src/epi_model/run_seir_model.R",
+		"src/epi_model/seir_model.R",
+		"data/epi_modelling/population.rds",
+		"data/epi_modelling/events/{mobility_model}/{network}_events.rds",
+	output:
+		"data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds"
+	shell: 
+		"Rscript {input} {output}"
+
+
+rule slim_epi_model:
+	input: 
+		"src/epi_model/slim_seir_model_results.R",
+		"data/epi_modelling/results/{mobility_model}/{network}/R0_{R0}/infected_{infected}_trajectory_{iteration}.rds"
+	output:
+		"data/epi_modelling/results_slim/{type}/{mobility_model}.{network}.R0_{R0}.infected_{infected}.trajectory_{iteration}.rds"
+	shell: 
+		"Rscript {input} {output}"

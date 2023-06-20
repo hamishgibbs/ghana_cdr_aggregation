@@ -6,11 +6,14 @@ if (interactive()){
   .args <- c(
     list.files("data/epi_modelling/results/gravity_exp/all_pairs/R0_3",
                pattern="trajectory_10.rds", full.names = T),
+    "",
     ""
   )
 } else {
   .args <- commandArgs(trailingOnly = T)
 }
+
+.outputs <- tail(.args, 2)
 
 trajectories_national <- list()
 
@@ -27,12 +30,12 @@ for (i in 1:length(trajectory_indices)){
 
 trajectories_national <- do.call(rbind, trajectories_national)
   
-write_csv(trajectories_national, tail(.args, 1))
+write_csv(trajectories_national, .outputs[1])
 
 # Note that some epidemics do not finish by the time the end of the model training is reached
 trajectory_peaks <- trajectories_national %>%
   group_by(mobility_network_type, R0, introduction_location, sample) %>% 
   top_n(1, wt=I)
 
-write_csv(trajectory_peaks, gsub(".csv", "_peaks.csv", tail(.args, 1)))
+write_csv(trajectory_peaks, .outputs[2])
 

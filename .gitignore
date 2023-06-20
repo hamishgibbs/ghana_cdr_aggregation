@@ -1,5 +1,16 @@
-data
+data/cell_sites
+data/distance
+data/epi_modelling
+data/mobility_modelling
+data/networks
+data/population
+data/geo/*
+!data/geo/admin2.geojson
 output
 .Rhistory
 .DS_Store
 manuscript
+.snakemake
+Cargo.lock
+target
+hosts.txt

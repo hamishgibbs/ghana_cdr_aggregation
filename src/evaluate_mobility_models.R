@@ -151,7 +151,6 @@ plot_network_distance_kernel <- function(network,
 plot_smooth_line_and_equation <- function(){
   return(
     list(geom_smooth(method="lm", level=0.90, size=0.3),
-         #ggpubr::stat_regline_equation(label.x.npc = 0.6, label.y.npc = 1, size=3),
          ggpubr::stat_cor(aes(label = ..r.label..), label.x.npc = 0.6, label.y.npc = 0.9, size=3))
   )
 }

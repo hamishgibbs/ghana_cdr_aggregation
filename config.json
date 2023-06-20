@@ -1,0 +1,5 @@
+{
+    "network_types": ["all_pairs", "sequential"],
+    "mobility_model_types": ["gravity_exp", "gravity_power", "radiation_basic"],
+    "R0_values": [3, 1.5, 1.25]
+}

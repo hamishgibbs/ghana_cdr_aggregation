@@ -7,24 +7,33 @@ if (interactive()){
   .args <- c(
     "data/population/population_admin2.csv",
     "data/distance/distance_matrix_admin2.rds",
-    "data/networks/all_pairs_admin2.csv",
-    ""
+    "data/networks/sequential_admin2.csv",
+    "data/mobility_modelling/gravity_exp/sequential_model.rds",
+    "data/mobility_modelling/gravity_exp/sequential_model_predictions.rds",
+    "data/mobility_modelling/gravity_exp/sequential_model_check.png",
+    "data/mobility_modelling/gravity_exp/sequential_model_check.csv"
   )
-  MOBILITY_MODEL <- "gravity"
-  MOBILITY_MODEL_TYPE <- "basic"
 } else {
   .args <- commandArgs(trailingOnly = T)
-  MOBILITY_MODEL <- Sys.getenv("MOBILITY_MODEL")
-  MOBILITY_MODEL_TYPE <- Sys.getenv("MOBILITY_MODEL_TYPE")
 }
+
+.outputs <- tail(.args, 4)
 
 population <- read_csv(.args[1], col_types = cols())
 distance_matrix <- read_rds(.args[2])
 
 network <- read_csv(.args[3], col_types = cols())
 
-network_fn_split <- stringr::str_split(.args[3], "/")
-MOBILITY_NETWORK_TYPE <- gsub("_admin2.csv", "", network_fn_split[[1]][length(network_fn_split[[1]])])
+MOBILITY_NETWORK_TYPE <- gsub("_model", "", 
+                              stringr::str_split(
+                                stringr::str_split(
+                                  tail(.args, 1), "/")[[1]][4], "[.]")[[1]][1])
+
+model_fn_split <- stringr::str_split(
+  stringr::str_split(tail(.args, 1), "/")[[1]][3], "_")[[1]]
+
+MOBILITY_MODEL <- model_fn_split[1]
+MOBILITY_MODEL_TYPE <- model_fn_split[2]
 
 create_model_inputs <- function(population, distance, network){
 
@@ -48,7 +57,7 @@ create_model_inputs <- function(population, distance, network){
 
 }
 
-train_gravity_model <- function(inputs, seed=NULL){
+train_mobility_model <- function(inputs, seed=NULL){
 
   if (seed){set.seed(seed)}
   return(
@@ -66,19 +75,17 @@ train_gravity_model <- function(inputs, seed=NULL){
 
 model_inputs <- create_model_inputs(population, distance_matrix, network)
 
-model <- train_gravity_model(model_inputs, seed=1000)
+model <- train_mobility_model(model_inputs, seed=1000)
 
-fn_prefix <- paste0("data/mobility_modelling/", MOBILITY_MODEL, "_", MOBILITY_MODEL_TYPE, "/", MOBILITY_NETWORK_TYPE, "_model")
+write_rds(model, .outputs[1])
 
-write_rds(model, paste0(fn_prefix, ".rds"))
-
-write_rds(predict(model), paste0(fn_prefix, "_predictions.rds"))
+write_rds(predict(model), .outputs[2])
 
 if (MOBILITY_MODEL == "gravity"){
-  write_csv(summary(model), paste0(fn_prefix, "_summary.csv"))
+  write_csv(summary(model), gsub(".rds", "_summary.csv", .outputs[1]))
 }
 
-png(filename=paste0(fn_prefix, "_check.png"),
+png(filename=.outputs[3],
     width=2000, height=1500)
 check_results <- mobility::check(model)
 dev.off()
@@ -87,4 +94,4 @@ if (is.null(check_results$DIC)){
   check_results$DIC <- 0
 }
 
-write_csv(data.frame(check_results), paste0(fn_prefix, "_check.csv"))
+write_csv(data.frame(check_results), .outputs[4])

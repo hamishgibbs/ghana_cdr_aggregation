@@ -192,12 +192,14 @@ ggsave(.outputs[1],
        p,
        width = 10, height=5, units='in')
 
-
-journey_comparison <- daily_average_all_pairs %>% 
-  left_join(daily_average_sequential, by = c("pcod_from", "pcod_to")) %>% 
+journey_comparison <- all_pairs %>% 
+  left_join(sequential %>% select(-admin_level), by = c("pcod_from", "pcod_to", "dt")) %>% 
+  drop_na(value.y) %>% 
+  group_by(pcod_from, pcod_to) %>% 
+  summarise(value.x = mean(value.x),
+            value.y = mean(value.y)) %>% 
   rename(all_pairs = value.x,
-         sequential = value.y) %>% 
-  drop_na()
+         sequential = value.y)
 
 p_journey_comparison <- ggplot(data=journey_comparison) + 
   geom_jitter(aes(x = all_pairs, y = sequential), size=0.2) + 

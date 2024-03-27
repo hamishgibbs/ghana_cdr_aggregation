@@ -126,8 +126,19 @@ total_trips_from_origin <- function(network, type){
     mutate(type = type))
 }
 
-ds <- total_trips_from_origin(sequential, type="Sequential") 
-da <- total_trips_from_origin(all_pairs, type="All Pairs")
+# CORRECTION: select only o, d, t combinations common to both methods
+common_obs <- all_pairs %>% 
+  left_join(sequential %>% select(-admin_level), by = c("pcod_from", "pcod_to", "dt")) %>% 
+  drop_na(value.y) %>% 
+  select(pcod_from, pcod_to, dt) %>% 
+  distinct()
+
+ds <- total_trips_from_origin(sequential %>% 
+                                semi_join(common_obs, by = c("pcod_from", "pcod_to", "dt")), 
+                              type="Sequential") 
+da <- total_trips_from_origin(all_pairs %>% 
+                                semi_join(common_obs, by = c("pcod_from", "pcod_to", "dt")), 
+                              type="All Pairs")
 
 color_scale <- scale_color_manual(values = c("All Pairs" = "red", "Sequential" = "black"))
 point_plot_theme <- theme(legend.title = element_blank(),
